@@ -2,44 +2,42 @@
 
 namespace App\Http\Controllers;
 
-use Auth;
-use Hash;
-use Cache;
-use Cookie;
-use App\Models\Page;
-use App\Models\Shop;
-use App\Models\User;
-use App\Models\Brand;
-use App\Models\Order;
-use App\Models\Coupon;
-use App\Models\Product;
-use App\Models\Category;
-use App\Models\FlashDeal;
-use App\Models\OrderDetail;
-use App\Models\ProductQuery;
-use Illuminate\Http\Request;
 use App\Models\AffiliateConfig;
-use App\Models\CustomerPackage;
-use Illuminate\Support\Facades\View;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Response;
-use Illuminate\Auth\Events\PasswordReset;
+use App\Models\Brand;
 use App\Models\Cart;
-use App\Models\Preorder;
-use App\Rules\Recaptcha;
-use Illuminate\Validation\Rule;
+use App\Models\Category;
+use App\Models\Coupon;
+use App\Models\CustomerPackage;
+use App\Models\FlashDeal;
+use App\Models\Order;
+use App\Models\OrderDetail;
+use App\Models\Page;
 use App\Models\PreorderProduct;
+use App\Models\Product;
+use App\Models\ProductQuery;
 use App\Models\RegistrationVerificationCode;
+use App\Models\Shop;
 use App\Models\SmsTemplate;
+use App\Models\User;
+use App\Rules\Recaptcha;
 use App\Services\SendSmsService;
 use App\Utility\EmailUtility;
 use Artisan;
-use DB;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\Support\Facades\URL;
-use ZipArchive;
+use Auth;
+use Cache;
 use Carbon\Carbon;
-use Session;
+use Cookie;
+use DB;
+use Hash;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\View\Factory;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\View;
+use Illuminate\Validation\Rule;
+use ZipArchive;
 
 class HomeController extends Controller
 {
@@ -50,20 +48,21 @@ class HomeController extends Controller
      */
     public function index()
     {
-        // $route = route(get_setting('customer_registration_verify') === '1' ? 'registration.verification' : 'user.registration'); 
+        // $route = route(get_setting('customer_registration_verify') === '1' ? 'registration.verification' : 'user.registration');
         // dd( $route );
         $lang = get_system_language() ? get_system_language()->code : null;
         $featured_categories = Cache::rememberForever('featured_categories', function () {
             return Category::with('bannerImage')->where('featured', 1)->get();
         });
 
-        return view('frontend.' . get_setting('homepage_select') . '.index', compact('featured_categories', 'lang'));
+        return view('frontend.'.get_setting('homepage_select').'.index', compact('featured_categories', 'lang'));
     }
 
     public function load_todays_deal_section()
     {
         $todays_deal_products = filter_products(Product::where('todays_deal', '1'))->orderBy('id', 'desc')->get();
-        return view('frontend.' . get_setting('homepage_select') . '.partials.todays_deal', compact('todays_deal_products'));
+        return view('frontend.'.get_setting('homepage_select').'.partials.todays_deal',
+            compact('todays_deal_products'));
     }
 
     public function load_newest_product_section()
@@ -72,17 +71,18 @@ class HomeController extends Controller
             return filter_products(Product::latest())->limit(12)->get();
         });
 
-        return view('frontend.' . get_setting('homepage_select') . '.partials.newest_products_section', compact('newest_products'));
+        return view('frontend.'.get_setting('homepage_select').'.partials.newest_products_section',
+            compact('newest_products'));
     }
 
     public function load_featured_section()
     {
-        return view('frontend.' . get_setting('homepage_select') . '.partials.featured_products_section');
+        return view('frontend.'.get_setting('homepage_select').'.partials.featured_products_section');
     }
 
     public function load_best_selling_section()
     {
-        return view('frontend.' . get_setting('homepage_select') . '.partials.best_selling_section');
+        return view('frontend.'.get_setting('homepage_select').'.partials.best_selling_section');
     }
 
     public function load_auction_products_section()
@@ -91,23 +91,32 @@ class HomeController extends Controller
             return;
         }
         $lang = get_system_language() ? get_system_language()->code : null;
-        return view('auction.frontend.' . get_setting('homepage_select') . '.auction_products_section', compact('lang'));
+        return view('auction.frontend.'.get_setting('homepage_select').'.auction_products_section', compact('lang'));
     }
 
     public function load_home_categories_section()
     {
-        return view('frontend.' . get_setting('homepage_select') . '.partials.home_categories_section');
+        return view('frontend.'.get_setting('homepage_select').'.partials.home_categories_section');
+    }
+
+    /**
+     * @return Application|Factory|\Illuminate\Contracts\View\View|\Illuminate\Foundation\Application|\Illuminate\View\View
+     */
+    public function load_category_products_section()
+    {
+        return view('frontend.'.get_setting('homepage_select').'.partials.category_products_section');
     }
 
     public function load_best_sellers_section()
     {
-        return view('frontend.' . get_setting('homepage_select') . '.partials.best_sellers_section');
+        return view('frontend.'.get_setting('homepage_select').'.partials.best_sellers_section');
     }
+
     public function load_preorder_featured_products_section()
     {
 
         // $preorder_products = Cache::remember('preorder_products', 3600, function () {
-            $preorder_products = PreorderProduct::where('is_published', 1)->where('is_featured',1)
+        $preorder_products = PreorderProduct::where('is_published', 1)->where('is_featured', 1)
             ->where(function ($query) {
                 $query->whereHas('user', function ($q) {
                     $q->where('user_type', 'admin');
@@ -119,7 +128,8 @@ class HomeController extends Controller
             ->limit(12)
             ->get();
         // });
-        return view('frontend.' . get_setting('homepage_select') . '.partials.preorder_products_section', compact('preorder_products'));
+        return view('frontend.'.get_setting('homepage_select').'.partials.preorder_products_section',
+            compact('preorder_products'));
     }
 
     public function login()
@@ -129,15 +139,18 @@ class HomeController extends Controller
         }
 
         if (Route::currentRouteName() == 'seller.login' && get_setting('vendor_system_activation') == 1) {
-            return view('auth.' . get_setting('authentication_layout_select') . '.seller_login');
-        } else if (Route::currentRouteName() == 'deliveryboy.login' && addon_is_activated('delivery_boy')) {
-            return view('auth.' . get_setting('authentication_layout_select') . '.deliveryboy_login');
+            return view('auth.'.get_setting('authentication_layout_select').'.seller_login');
+        } else {
+            if (Route::currentRouteName() == 'deliveryboy.login' && addon_is_activated('delivery_boy')) {
+                return view('auth.'.get_setting('authentication_layout_select').'.deliveryboy_login');
+            }
         }
-        return view('auth.' . get_setting('authentication_layout_select') . '.user_login');
+        return view('auth.'.get_setting('authentication_layout_select').'.user_login');
     }
 
 
-    public function verifyRegEmailorPhone(){
+    public function verifyRegEmailorPhone()
+    {
         $type = 'customer';
         if (Auth::check()) {
             if ((Auth::user()->user_type == 'admin' || Auth::user()->user_type == 'seller')) {
@@ -149,13 +162,14 @@ class HomeController extends Controller
                 return back();
             }
         } else {
-            return view('auth.' . get_setting('authentication_layout_select') . '.customer_reg_verification', compact('type'));
+            return view('auth.'.get_setting('authentication_layout_select').'.customer_reg_verification',
+                compact('type'));
         }
     }
 
     public function registration(Request $request)
     {
-        if(get_setting('customer_registration_verify') === '1' ){
+        if (get_setting('customer_registration_verify') === '1') {
             abort(404);
         }
 
@@ -182,14 +196,16 @@ class HomeController extends Controller
         }
         $email = null;
         $phone = null;
-        return view('auth.' . get_setting('authentication_layout_select') . '.user_registration', compact('email','phone'));
+        return view('auth.'.get_setting('authentication_layout_select').'.user_registration',
+            compact('email', 'phone'));
     }
 
     public function cart_login(Request $request)
     {
         $user = null;
         if ($request->get('phone') != null) {
-            $user = User::whereIn('user_type', ['customer', 'seller'])->where('phone', "+{$request['country_code']}{$request['phone']}")->first();
+            $user = User::whereIn('user_type', ['customer', 'seller'])->where('phone',
+                "+{$request['country_code']}{$request['phone']}")->first();
         } elseif ($request->get('email') != null) {
             $user = User::whereIn('user_type', ['customer', 'seller'])->where('email', $request->email)->first();
         }
@@ -286,9 +302,9 @@ class HomeController extends Controller
             ->where('start_date', "<=", $today)
             ->where('end_date', ">", $today)
             ->first();
-        if ($flash_deal != null)
+        if ($flash_deal != null) {
             return view('frontend.flash_deal_details', compact('flash_deal'));
-        else {
+        } else {
             abort(404);
         }
     }
@@ -310,7 +326,8 @@ class HomeController extends Controller
             session(['link' => url()->current()]);
         }
 
-        $detailedProduct  = Product::with('reviews', 'brand', 'stocks', 'user', 'user.shop')->where('auction_product', 0)->where('slug', $slug)->where('approved', 1)->first();
+        $detailedProduct = Product::with('reviews', 'brand', 'stocks', 'user', 'user.shop')->where('auction_product',
+            0)->where('slug', $slug)->where('approved', 1)->first();
 
         if ($detailedProduct != null && $detailedProduct->published) {
             if ((get_setting('vendor_system_activation') != 1) && $detailedProduct->added_by == 'seller') {
@@ -325,26 +342,31 @@ class HomeController extends Controller
                 abort(404);
             }
 
-            $product_queries = ProductQuery::where('product_id', $detailedProduct->id)->where('customer_id', '!=', Auth::id())->latest('id')->paginate(3);
+            $product_queries = ProductQuery::where('product_id', $detailedProduct->id)->where('customer_id', '!=',
+                Auth::id())->latest('id')->paginate(3);
             $total_query = ProductQuery::where('product_id', $detailedProduct->id)->count();
             $reviews = $detailedProduct->reviews()->where('status', 1)->orderBy('created_at', 'desc')->paginate(3);
 
             // Pagination using Ajax
             if (request()->ajax()) {
                 if ($request->type == 'query') {
-                    return Response::json(View::make('frontend.partials.product_query_pagination', array('product_queries' => $product_queries))->render());
+                    return Response::json(View::make('frontend.partials.product_query_pagination',
+                        array('product_queries' => $product_queries))->render());
                 }
                 if ($request->type == 'review') {
-                    return Response::json(View::make('frontend.product_details.reviews', array('reviews' => $reviews))->render());
+                    return Response::json(View::make('frontend.product_details.reviews',
+                        array('reviews' => $reviews))->render());
                 }
             }
 
             // review status
             $review_status = 0;
             if (Auth::check()) {
-                $OrderDetail = OrderDetail::with(['order' => function ($q) {
-                    $q->where('user_id', Auth::id());
-                }])->where('product_id', $detailedProduct->id)->where('delivery_status', 'delivered')->first();
+                $OrderDetail = OrderDetail::with([
+                    'order' => function ($q) {
+                        $q->where('user_id', Auth::id());
+                    }
+                ])->where('product_id', $detailedProduct->id)->where('delivery_status', 'delivered')->first();
                 $review_status = $OrderDetail ? 1 : 0;
             }
             if ($request->has('product_referral_code') && addon_is_activated('affiliate_system')) {
@@ -362,11 +384,12 @@ class HomeController extends Controller
                 $affiliateController->processAffiliateStats($referred_by_user->id, 1, 0, 0, 0);
             }
 
-            if(get_setting('last_viewed_product_activation') == 1 && Auth::check() && auth()->user()->user_type == 'customer'){
+            if (get_setting('last_viewed_product_activation') == 1 && Auth::check() && auth()->user()->user_type == 'customer') {
                 lastViewedProducts($detailedProduct->id, auth()->user()->id);
             }
 
-            return view('frontend.product_details', compact('detailedProduct', 'product_queries', 'total_query', 'reviews', 'review_status'));
+            return view('frontend.product_details',
+                compact('detailedProduct', 'product_queries', 'total_query', 'reviews', 'review_status'));
         }
         abort(404);
     }
@@ -376,7 +399,7 @@ class HomeController extends Controller
         if (get_setting('vendor_system_activation') != 1) {
             return redirect()->route('home');
         }
-        $shop  = Shop::where('slug', $slug)->first();
+        $shop = Shop::where('slug', $slug)->first();
         if ($shop != null) {
             if ($shop->user->banned == 1) {
                 abort(404);
@@ -395,7 +418,7 @@ class HomeController extends Controller
         if (get_setting('vendor_system_activation') != 1) {
             return redirect()->route('home');
         }
-        $shop  = Shop::where('slug', $slug)->first();
+        $shop = Shop::where('slug', $slug)->first();
         if ($shop != null && $type != null) {
             if ($shop->user->banned == 1) {
                 abort(404);
@@ -411,7 +434,8 @@ class HomeController extends Controller
                 $conditions = ['user_id' => $shop->user->id, 'published' => 1, 'approved' => 1];
 
                 if ($request->brand != null) {
-                    $brand_id = (Brand::where('slug', $request->brand)->first() != null) ? Brand::where('slug', $request->brand)->first()->id : null;
+                    $brand_id = (Brand::where('slug', $request->brand)->first() != null) ? Brand::where('slug',
+                        $request->brand)->first()->id : null;
                     $conditions = array_merge($conditions, ['brand_id' => $brand_id]);
                 }
 
@@ -451,7 +475,9 @@ class HomeController extends Controller
 
                 $products = $products->paginate(24)->appends(request()->query());
 
-                return view('frontend.seller_shop', compact('shop', 'type', 'products', 'selected_categories', 'min_price', 'max_price', 'brand_id', 'sort_by', 'rating'));
+                return view('frontend.seller_shop',
+                    compact('shop', 'type', 'products', 'selected_categories', 'min_price', 'max_price', 'brand_id',
+                        'sort_by', 'rating'));
             }
 
             if ($type == 'all-preorder-products') {
@@ -466,11 +492,12 @@ class HomeController extends Controller
                 $conditions = ['user_id' => $shop->user->id, 'is_published' => 1];
 
                 if ($request->brand != null) {
-                    $brand_id = (Brand::where('slug', $request->brand)->first() != null) ? Brand::where('slug', $request->brand)->first()->id : null;
+                    $brand_id = (Brand::where('slug', $request->brand)->first() != null) ? Brand::where('slug',
+                        $request->brand)->first()->id : null;
                     $conditions = array_merge($conditions, ['brand_id' => $brand_id]);
                 }
 
-                $products = PreorderProduct::where('is_published',1)->where('user_id' , $shop->user->id);
+                $products = PreorderProduct::where('is_published', 1)->where('user_id', $shop->user->id);
 
                 if ($request->has('is_available') && $request->is_available !== null) {
                     $availability = $request->is_available;
@@ -531,7 +558,9 @@ class HomeController extends Controller
 
                 $products = $products->paginate(24)->appends(request()->query());
 
-                return view('frontend.seller_shop', compact('shop', 'type', 'products', 'selected_categories', 'min_price', 'max_price', 'brand_id', 'sort_by', 'rating','is_available'));
+                return view('frontend.seller_shop',
+                    compact('shop', 'type', 'products', 'selected_categories', 'min_price', 'max_price', 'brand_id',
+                        'sort_by', 'rating', 'is_available'));
             }
 
             return view('frontend.seller_shop', compact('shop', 'type'));
@@ -541,7 +570,8 @@ class HomeController extends Controller
 
     public function all_categories(Request $request)
     {
-        $categories = Category::with('childrenCategories')->where('parent_id', 0)->orderBy('order_level', 'desc')->get();
+        $categories = Category::with('childrenCategories')->where('parent_id', 0)->orderBy('order_level',
+            'desc')->get();
 
         // dd($categories);
         return view('frontend.all_category', compact('categories'));
@@ -599,9 +629,9 @@ class HomeController extends Controller
         if (json_decode($product->choice_options) != null) {
             foreach (json_decode($product->choice_options) as $key => $choice) {
                 if ($str != null) {
-                    $str .= '-' . str_replace(' ', '', $request['attribute_id_' . $choice->attribute_id]);
+                    $str .= '-'.str_replace(' ', '', $request['attribute_id_'.$choice->attribute_id]);
                 } else {
-                    $str .= str_replace(' ', '', $request['attribute_id_' . $choice->attribute_id]);
+                    $str .= str_replace(' ', '', $request['attribute_id_'.$choice->attribute_id]);
                 }
             }
         }
@@ -612,7 +642,8 @@ class HomeController extends Controller
 
 
         if ($product->wholesale_product) {
-            $wholesalePrice = $product_stock->wholesalePrices->where('min_qty', '<=', $request->quantity)->where('max_qty', '>=', $request->quantity)->first();
+            $wholesalePrice = $product_stock->wholesalePrices->where('min_qty', '<=',
+                $request->quantity)->where('max_qty', '>=', $request->quantity)->first();
             if ($wholesalePrice) {
                 $price = $wholesalePrice->price;
             }
@@ -679,31 +710,31 @@ class HomeController extends Controller
 
     public function sellerpolicy()
     {
-        $page =  Page::where('type', 'seller_policy_page')->first();
+        $page = Page::where('type', 'seller_policy_page')->first();
         return view("frontend.policies.sellerpolicy", compact('page'));
     }
 
     public function returnpolicy()
     {
-        $page =  Page::where('type', 'return_policy_page')->first();
+        $page = Page::where('type', 'return_policy_page')->first();
         return view("frontend.policies.returnpolicy", compact('page'));
     }
 
     public function supportpolicy()
     {
-        $page =  Page::where('type', 'support_policy_page')->first();
+        $page = Page::where('type', 'support_policy_page')->first();
         return view("frontend.policies.supportpolicy", compact('page'));
     }
 
     public function terms()
     {
-        $page =  Page::where('type', 'terms_conditions_page')->first();
+        $page = Page::where('type', 'terms_conditions_page')->first();
         return view("frontend.policies.terms", compact('page'));
     }
 
     public function privacypolicy()
     {
-        $page =  Page::where('type', 'privacy_policy_page')->first();
+        $page = Page::where('type', 'privacy_policy_page')->first();
         return view("frontend.policies.privacypolicy", compact('page'));
     }
 
@@ -770,7 +801,7 @@ class HomeController extends Controller
     public function email_change_callback(Request $request)
     {
         if ($request->has('new_email_verificiation_code') && $request->has('email')) {
-            $verification_code_of_url_param =  $request->input('new_email_verificiation_code');
+            $verification_code_of_url_param = $request->input('new_email_verificiation_code');
             $user = User::where('new_email_verificiation_code', $verification_code_of_url_param)->first();
 
             if ($user != null) {
@@ -795,7 +826,8 @@ class HomeController extends Controller
 
     public function reset_password_with_code(Request $request)
     {
-        if (($user = User::where('email', $request->email)->where('verification_code', $request->code)->first()) != null) {
+        if (($user = User::where('email', $request->email)->where('verification_code',
+                $request->code)->first()) != null) {
             if ($request->password == $request->password_confirmation) {
                 $user->password = Hash::make($request->password);
                 $user->email_verified_at = date('Y-m-d h:m:s');
@@ -811,11 +843,11 @@ class HomeController extends Controller
                 return redirect()->route('home');
             } else {
                 flash(translate("Password and confirm password didn't match"))->warning();
-                return view('auth.' . get_setting('authentication_layout_select') . '.reset_password');
+                return view('auth.'.get_setting('authentication_layout_select').'.reset_password');
             }
         } else {
             flash(translate("Verification code mismatch"))->error();
-            return view('auth.' . get_setting('authentication_layout_select') . '.reset_password');
+            return view('auth.'.get_setting('authentication_layout_select').'.reset_password');
         }
     }
 
@@ -857,7 +889,8 @@ class HomeController extends Controller
     {
         $coupons = Coupon::where('status', 1)->where(function ($query) {
             $query->where('type', 'welcome_base')->orWhere(function ($query) {
-                $query->where('type', '!=', 'welcome_base')->where('start_date', '<=', strtotime(date('d-m-Y')))->where('end_date', '>=', strtotime(date('d-m-Y')));
+                $query->where('type', '!=', 'welcome_base')->where('start_date', '<=',
+                    strtotime(date('d-m-Y')))->where('end_date', '>=', strtotime(date('d-m-Y')));
             });
         })->paginate(15);
 
@@ -866,7 +899,8 @@ class HomeController extends Controller
 
     public function inhouse_products(Request $request)
     {
-        $products = filter_products(Product::where('added_by', 'admin'))->with('taxes')->paginate(12)->appends(request()->query());
+        $products = filter_products(Product::where('added_by',
+            'admin'))->with('taxes')->paginate(12)->appends(request()->query());
         return view('frontend.inhouse_products', compact('products'));
     }
 
@@ -890,14 +924,15 @@ class HomeController extends Controller
 
     public function sendRegVerificationCode(Request $request)
     {
-         $request->validate([
+        $request->validate([
             'g-recaptcha-response' => [
-                Rule::when(get_setting('google_recaptcha') == 1 && get_setting('recaptcha_customer_mail_verification') == 1, ['required', new Recaptcha()], ['sometimes'])
+                Rule::when(get_setting('google_recaptcha') == 1 && get_setting('recaptcha_customer_mail_verification') == 1,
+                    ['required', new Recaptcha()], ['sometimes'])
             ],
         ]);
 
         $email = $request->email ?? null;
-        $phone = $request->phone != null ? '+' . $request->country_code . $request->phone : null;
+        $phone = $request->phone != null ? '+'.$request->country_code.$request->phone : null;
 
         if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
             if (User::where('email', $email)->first() != null) {
@@ -918,17 +953,18 @@ class HomeController extends Controller
 
         if ($email) {
             try {
-                EmailUtility::email_verification_for_registration_customer('email_verification_for_registration_customer', $email, $verificationCode);
+                EmailUtility::email_verification_for_registration_customer('email_verification_for_registration_customer',
+                    $email, $verificationCode);
             } catch (\Exception $e) {
                 $success = 0;
             }
         } else {
             if (addon_is_activated('otp_system')) {
-                $sms_template   = SmsTemplate::where('identifier', 'phone_number_verification')->first();
-                $sms_body       = $sms_template->sms_body;
-                $sms_body       = str_replace('[[code]]', $verificationCode, $sms_body);
-                $sms_body       = str_replace('[[site_name]]', env('APP_NAME'), $sms_body);
-                $template_id    = $sms_template->template_id;
+                $sms_template = SmsTemplate::where('identifier', 'phone_number_verification')->first();
+                $sms_body = $sms_template->sms_body;
+                $sms_body = str_replace('[[code]]', $verificationCode, $sms_body);
+                $sms_body = str_replace('[[site_name]]', env('APP_NAME'), $sms_body);
+                $template_id = $sms_template->template_id;
 
                 (new SendSmsService())->sendSMS($phone, env('APP_NAME'), $sms_body, $template_id);
 
@@ -947,7 +983,8 @@ class HomeController extends Controller
     {
         // $customerVerification = $id;
         $customerVerification = RegistrationVerificationCode::whereId(decrypt($id))->first();
-        return view('auth.' . get_setting('authentication_layout_select') . '.customer_verify_confirmation', compact('customerVerification'));
+        return view('auth.'.get_setting('authentication_layout_select').'.customer_verify_confirmation',
+            compact('customerVerification'));
     }
 
 
@@ -965,7 +1002,7 @@ class HomeController extends Controller
     public function regVerifyCodeConfirmation(Request $request)
     {
         $email = isset($request->email) ? $request->email : null;
-        $phone = isset($request->phone) ? $request->phone  : null;
+        $phone = isset($request->phone) ? $request->phone : null;
 
         $customerVerification = RegistrationVerificationCode::where('code', $request->verification_code);
         $customerVerification = $request->email != null ?
@@ -978,7 +1015,8 @@ class HomeController extends Controller
         } else {
             $customerVerification->is_verified = 1;
             $customerVerification->save();
-                return view('auth.' . get_setting('authentication_layout_select') . '.user_registration', compact('customerVerification', 'email', 'phone'));
+            return view('auth.'.get_setting('authentication_layout_select').'.user_registration',
+                compact('customerVerification', 'email', 'phone'));
         }
     }
 }

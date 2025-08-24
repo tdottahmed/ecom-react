@@ -114,7 +114,7 @@ Route::controller(ShopController::class)->group(function () {
     Route::post('/shop/registration/verification-code-send', 'sendRegVerificationCode')->name('shop-reg.verification_code_send');
     Route::get('/shop/registration/verify-code/{id}', 'regVerifyCode')->name('shop-reg.verify_code');
     Route::post('/shop/registration/verification-code-confirmation', 'regVerifyCodeConfirmation')->name('shop-reg.verify_code_confirmation');
-    
+
 });
 
 Route::controller(HomeController::class)->group(function () {
@@ -137,6 +137,7 @@ Route::controller(HomeController::class)->group(function () {
     Route::get('/', 'index')->name('home');
 
     Route::post('/home/section/featured', 'load_featured_section')->name('home.section.featured');
+    Route::post('/home/section/category-products', 'load_category_products_section')->name('home.section.category_products');
     Route::post('/home/section/todays-deal', 'load_todays_deal_section')->name('home.section.todays_deal');
     Route::post('/home/section/best-selling', 'load_best_selling_section')->name('home.section.best_selling');
     Route::post('/home/section/newest-products', 'load_newest_product_section')->name('home.section.newest_products');
@@ -398,7 +399,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::controller(NoteController::class)->group(function () {
         Route::post('/get-notes', 'getNotes')->name('get_notes');
         Route::get('/get-single-note/{id}', 'getSingleNote')->name('get-single-note');
-        
+
     });
 });
 
