@@ -176,12 +176,61 @@
                             </td>
                             <td>
                                 @if($order->delivery_status=='pending')
-                                    <a href="{{ route('orderSent.courier', $order->id) }}"
-                                       class="btn btn-soft-success btn-sm"
-                                       title="{{ translate('Sent to Courier') }}">
+                                    <button type="button" class="btn btn-soft-success btn-sm" data-toggle="modal"
+                                            data-target="#courierModal{{ $order->id }}">
                                         <i class="las la-check"></i>
                                         Courier now
-                                    </a>
+                                    </button>
+                                    <!-- Courier Modal -->
+                                    <div class="modal fade" id="courierModal{{ $order->id }}" tabindex="-1"
+                                         role="dialog" aria-labelledby="courierModalLabel{{ $order->id }}"
+                                         aria-hidden="true">
+                                        <form action="{{ route('order.courier', $order->id) }}" method="POST">
+
+                                            <div class="modal-dialog" role="document">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="courierModalLabel{{ $order->id }}">
+                                                            Select Courier</h5>
+                                                        <button type="button" class="close" data-dismiss="modal"
+                                                                aria-label="Close">
+                                                            <span aria-hidden="true">&times;</span>
+                                                        </button>
+                                                    </div>
+                                                    @csrf
+                                                    <input type="hidden" name="order_id" value="{{ $order->id }}">
+                                                    <div class="modal-body">
+                                                        <div class="w-100">
+                                                            <div class="form-group row">
+                                                                <label
+                                                                    class="col-md-3 col-from-label">{{translate('Select Courier')}}</label>
+                                                                <div class="col-xxl-9">
+                                                                    <select class="form-control"
+                                                                            name="courier"
+                                                                            id="courier"
+                                                                            required>
+                                                                        <option
+                                                                            value="">{{ translate('Choose Courier') }}</option>
+                                                                        <option
+                                                                            value="pathao">{{__('Pathao')}}</option>
+                                                                        <option
+                                                                            value="steadfast">{{__('Steadfast')}}</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary"
+                                                                data-dismiss="modal">Close
+                                                        </button>
+                                                        <button type="submit" class="btn btn-primary">Submit
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
                                 @else
                                     {{ translate(ucfirst(str_replace('_', ' ', $order->delivery_status))) }}
                                 @endif

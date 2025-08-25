@@ -639,4 +639,9 @@ class OrderController extends Controller
         }
         return back();
     }
+
+    public function orderCourier(Request $request)
+    {
+        dd($request->all());
+    }
 }
