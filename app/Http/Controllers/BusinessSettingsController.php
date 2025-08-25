@@ -2,17 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\BusinessSetting;
 use App\Models\Country;
 use App\Models\PaymentMethod;
 use App\Models\Zone;
 use Artisan;
 use CoreComponentRepository;
+use DB;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\URL;
-use Str;
-use DB;
 use ZipArchive;
 
 class BusinessSettingsController extends Controller
@@ -57,6 +56,11 @@ class BusinessSettingsController extends Controller
         CoreComponentRepository::instantiateShopRepository();
         CoreComponentRepository::initializeCache();
         return view('backend.setup_configurations.social_login');
+    }
+
+    public function courier_setup()
+    {
+        return view('backend.setup_configurations.courier_setup');
     }
 
     public function smtp_settings(Request $request)
@@ -134,9 +138,9 @@ class BusinessSettingsController extends Controller
             $this->overWriteEnvFile($type, $request[$type]);
         }
 
-        $business_settings = BusinessSetting::where('type', $request->payment_method . '_sandbox')->first();
+        $business_settings = BusinessSetting::where('type', $request->payment_method.'_sandbox')->first();
         if ($business_settings != null) {
-            if ($request->has($request->payment_method . '_sandbox')) {
+            if ($request->has($request->payment_method.'_sandbox')) {
                 $business_settings->value = 1;
                 $business_settings->save();
             } else {
@@ -345,15 +349,16 @@ class BusinessSettingsController extends Controller
         if (env('DEMO_MODE') != 'On') {
             $path = base_path('.env');
             if (file_exists($path)) {
-                $val = '"' . trim($val) . '"';
-                if (is_numeric(strpos(file_get_contents($path), $type)) && strpos(file_get_contents($path), $type) >= 0) {
+                $val = '"'.trim($val).'"';
+                if (is_numeric(strpos(file_get_contents($path), $type)) && strpos(file_get_contents($path),
+                        $type) >= 0) {
                     file_put_contents($path, str_replace(
-                        $type . '="' . env($type) . '"',
-                        $type . '=' . $val,
+                        $type.'="'.env($type).'"',
+                        $type.'='.$val,
                         file_get_contents($path)
                     ));
                 } else {
-                    file_put_contents($path, file_get_contents($path) . "\r\n" . $type . '=' . $val);
+                    file_put_contents($path, file_get_contents($path)."\r\n".$type.'='.$val);
                 }
             }
         }
@@ -378,7 +383,7 @@ class BusinessSettingsController extends Controller
             $item['type'] = $request->type[$i];
             $item['label'] = $request->label[$i];
             if (in_array($request->type[$i], $select_types)) {
-                $item['options'] = json_encode($request['options_' . $request->option[$j]]);
+                $item['options'] = json_encode($request['options_'.$request->option[$j]]);
                 $j++;
             }
             array_push($form, $item);
@@ -416,7 +421,7 @@ class BusinessSettingsController extends Controller
                         $business_settings->value = json_encode($request[$type]);
                     } else {
                         $business_settings->value = $request[$type];
-                        if ($type == "seller_commission_type"  && $request[$type] == "category_based") {
+                        if ($type == "seller_commission_type" && $request[$type] == "category_based") {
                             $business_settings2 = BusinessSetting::where('type', 'category_wise_commission')->first();
                             $business_settings2->value = 1;
                             $business_settings2->save();
@@ -447,7 +452,7 @@ class BusinessSettingsController extends Controller
         flash(translate("Settings updated successfully"))->success();
         // If the request from a tabs with tab input
         if ($request->has('tab')) {
-            return Redirect::to(URL::previous() . "#" . $request->tab);
+            return Redirect::to(URL::previous()."#".$request->tab);
         }
         return redirect()->back();
     }
@@ -499,12 +504,12 @@ class BusinessSettingsController extends Controller
         if ($request->type == 'FORCE_HTTPS' && $request->value == '1') {
             $this->overWriteEnvFile($request->type, 'On');
 
-            if (strpos(env('APP_URL'), 'http:') !== FALSE) {
+            if (strpos(env('APP_URL'), 'http:') !== false) {
                 $this->overWriteEnvFile('APP_URL', str_replace("http:", "https:", env('APP_URL')));
             }
         } elseif ($request->type == 'FORCE_HTTPS' && $request->value == '0') {
             $this->overWriteEnvFile($request->type, 'Off');
-            if (strpos(env('APP_URL'), 'https:') !== FALSE) {
+            if (strpos(env('APP_URL'), 'https:') !== false) {
                 $this->overWriteEnvFile('APP_URL', str_replace("https:", "http:", env('APP_URL')));
             }
         } elseif ($request->type == 'FILESYSTEM_DRIVER') {
@@ -598,10 +603,10 @@ class BusinessSettingsController extends Controller
             return back();
         }
 
-        if (! AddonController::isLocalhostDomain()) {
+        if (!AddonController::isLocalhostDomain()) {
 
-            $check_domain_verification =  AddonController::checkVerification('item', $request->purchase_key);
-            $check_domain_activation =  AddonController::checkActivation('item', $request->purchase_key);
+            $check_domain_verification = AddonController::checkVerification('item', $request->purchase_key);
+            $check_domain_activation = AddonController::checkActivation('item', $request->purchase_key);
 
             if (!$check_domain_verification || !$check_domain_activation) {
                 return translate('Please activate your domain at first');

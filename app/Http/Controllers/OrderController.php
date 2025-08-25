@@ -2,30 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\AffiliateController;
-use Illuminate\Http\Request;
-use App\Models\Order;
-use App\Models\Cart;
-use App\Models\Address;
-use App\Models\Product;
-use App\Models\OrderDetail;
-use App\Models\CouponUsage;
-use App\Models\Coupon;
-use App\Models\User;
-use App\Models\CombinedOrder;
-use App\Models\SmsTemplate;
-use Auth;
-use Mail;
 use App\Mail\InvoiceEmailManager;
+use App\Models\Address;
+use App\Models\Cart;
+use App\Models\CombinedOrder;
+use App\Models\Coupon;
+use App\Models\CouponUsage;
+use App\Models\Order;
+use App\Models\OrderDetail;
 use App\Models\OrdersExport;
-use App\Utility\NotificationUtility;
-use CoreComponentRepository;
-use App\Utility\SmsUtility;
-use Illuminate\Support\Facades\Route;
-use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Facades\Notification;
+use App\Models\Product;
+use App\Models\SmsTemplate;
+use App\Models\User;
 use App\Notifications\OrderNotification;
 use App\Utility\EmailUtility;
+use App\Utility\NotificationUtility;
+use App\Utility\SmsUtility;
+use Auth;
+use CoreComponentRepository;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Route;
+use Maatwebsite\Excel\Facades\Excel;
+use Mail;
 
 class OrderController extends Controller
 {
@@ -35,7 +34,7 @@ class OrderController extends Controller
         // Staff Permission Check
         $this->middleware(['permission:view_all_orders|view_inhouse_orders|view_seller_orders|view_pickup_point_orders|view_all_offline_payment_orders'])->only('all_orders');
         $this->middleware(['permission:view_order_details'])->only('show');
-        $this->middleware(['permission:delete_order'])->only('destroy','bulk_order_delete');
+        $this->middleware(['permission:delete_order'])->only('destroy', 'bulk_order_delete');
     }
 
     // All Orders
@@ -54,11 +53,9 @@ class OrderController extends Controller
 
         if (Route::currentRouteName() == 'inhouse_orders.index' && Auth::user()->can('view_inhouse_orders')) {
             $orders = $orders->where('orders.seller_id', '=', $admin_user_id);
-        }
-        elseif (Route::currentRouteName() == 'seller_orders.index' && Auth::user()->can('view_seller_orders')) {
+        } elseif (Route::currentRouteName() == 'seller_orders.index' && Auth::user()->can('view_seller_orders')) {
             $orders = $orders->where('orders.seller_id', '!=', $admin_user_id);
-        }
-        elseif (Route::currentRouteName() == 'pick_up_point.index' && Auth::user()->can('view_pickup_point_orders')) {
+        } elseif (Route::currentRouteName() == 'pick_up_point.index' && Auth::user()->can('view_pickup_point_orders')) {
             if (get_setting('vendor_system_activation') != 1) {
                 $orders = $orders->where('orders.seller_id', '=', $admin_user_id);
             }
@@ -70,31 +67,29 @@ class OrderController extends Controller
                 $orders->where('shipping_type', 'pickup_point')
                     ->where('pickup_point_id', Auth::user()->staff->pick_up_point->id);
             }
-        }
-        elseif (Route::currentRouteName() == 'all_orders.index' && Auth::user()->can('view_all_orders')) {
+        } elseif (Route::currentRouteName() == 'all_orders.index' && Auth::user()->can('view_all_orders')) {
             if (get_setting('vendor_system_activation') != 1) {
                 $orders = $orders->where('orders.seller_id', '=', $admin_user_id);
             }
-        }
-        elseif (Route::currentRouteName() == 'offline_payment_orders.index' && Auth::user()->can('view_all_offline_payment_orders')) {
+        } elseif (Route::currentRouteName() == 'offline_payment_orders.index' && Auth::user()->can('view_all_offline_payment_orders')) {
             $orders = $orders->where('orders.manual_payment', 1);
-            if($request->order_type != null){
+            if ($request->order_type != null) {
                 $order_type = $request->order_type;
-                $orders = $order_type =='inhouse_orders' ? 
-                            $orders->where('orders.seller_id', '=', $admin_user_id) : 
-                            $orders->where('orders.seller_id', '!=', $admin_user_id);
+                $orders = $order_type == 'inhouse_orders' ?
+                    $orders->where('orders.seller_id', '=', $admin_user_id) :
+                    $orders->where('orders.seller_id', '!=', $admin_user_id);
             }
-        }
-        elseif (Route::currentRouteName() == 'unpaid_orders.index' && Auth::user()->can('view_all_unpaid_orders')) {
+        } elseif (Route::currentRouteName() == 'unpaid_orders.index' && Auth::user()->can('view_all_unpaid_orders')) {
             $orders = $orders->where('orders.payment_status', 'unpaid');
-        }
-        else {
+        } elseif (Route::currentRouteName() == 'courier_orders.index' && Auth::user()->can('view_all_orders')) {
+            $orders = $orders->where('orders.shipping_type', 'home_delivery');
+        } else {
             abort(403);
         }
 
         if ($request->search) {
             $sort_search = $request->search;
-            $orders = $orders->where('code', 'like', '%' . $sort_search . '%');
+            $orders = $orders->where('code', 'like', '%'.$sort_search.'%');
         }
         if ($request->payment_status != null) {
             $orders = $orders->where('payment_status', $request->payment_status);
@@ -105,24 +100,27 @@ class OrderController extends Controller
             $delivery_status = $request->delivery_status;
         }
         if ($date != null) {
-            $orders = $orders->where('created_at', '>=', date('Y-m-d', strtotime(explode(" to ", $date)[0])) . '  00:00:00')
-                ->where('created_at', '<=', date('Y-m-d', strtotime(explode(" to ", $date)[1])) . '  23:59:59');
+            $orders = $orders->where('created_at', '>=',
+                date('Y-m-d', strtotime(explode(" to ", $date)[0])).'  00:00:00')
+                ->where('created_at', '<=', date('Y-m-d', strtotime(explode(" to ", $date)[1])).'  23:59:59');
         }
         $orders = $orders->paginate(15);
         $unpaid_order_payment_notification = get_notification_type('complete_unpaid_order_payment', 'type');
-        return view('backend.sales.index', compact('orders', 'sort_search', 'order_type', 'payment_status', 'delivery_status', 'date', 'unpaid_order_payment_notification'));
+        return view('backend.sales.index',
+            compact('orders', 'sort_search', 'order_type', 'payment_status', 'delivery_status', 'date',
+                'unpaid_order_payment_notification'));
     }
 
     public function show($id)
     {
         $order = Order::findOrFail(decrypt($id));
-        
+
         $order_shipping_address = json_decode($order->shipping_address);
         $delivery_boys = User::where('city', $order_shipping_address->city)
-                ->where('user_type', 'delivery_boy')
-                ->get();
-                
-        if(env('DEMO_MODE') != 'On') {
+            ->where('user_type', 'delivery_boy')
+            ->get();
+
+        if (env('DEMO_MODE') != 'On') {
             $order->viewed = 1;
             $order->save();
         }
@@ -143,7 +141,7 @@ class OrderController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param \Illuminate\Http\Request $request
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
@@ -159,16 +157,16 @@ class OrderController extends Controller
 
         $shippingAddress = [];
         if ($address != null) {
-            $shippingAddress['name']        = Auth::user()->name;
-            $shippingAddress['email']       = Auth::user()->email;
-            $shippingAddress['address']     = $address->address;
-            $shippingAddress['country']     = $address->country->name;
-            $shippingAddress['state']       = $address->state->name;
-            $shippingAddress['city']        = $address->city->name;
+            $shippingAddress['name'] = Auth::user()->name;
+            $shippingAddress['email'] = Auth::user()->email;
+            $shippingAddress['address'] = $address->address;
+            $shippingAddress['country'] = $address->country->name;
+            $shippingAddress['state'] = $address->state->name;
+            $shippingAddress['city'] = $address->city->name;
             $shippingAddress['postal_code'] = $address->postal_code;
-            $shippingAddress['phone']       = $address->phone;
+            $shippingAddress['phone'] = $address->phone;
             if ($address->latitude || $address->longitude) {
-                $shippingAddress['lat_lang'] = $address->latitude . ',' . $address->longitude;
+                $shippingAddress['lat_lang'] = $address->latitude.','.$address->longitude;
             }
         }
 
@@ -197,7 +195,7 @@ class OrderController extends Controller
             $order->payment_type = $request->payment_option;
             $order->delivery_viewed = '0';
             $order->payment_status_viewed = '0';
-            $order->code = date('Ymd-His') . rand(10, 99);
+            $order->code = date('Ymd-His').rand(10, 99);
             $order->date = strtotime('now');
             $order->save();
 
@@ -211,14 +209,14 @@ class OrderController extends Controller
                 $product = Product::find($cartItem['product_id']);
 
                 $subtotal += cart_product_price($cartItem, $product, false, false) * $cartItem['quantity'];
-                $tax +=  cart_product_tax($cartItem, $product, false) * $cartItem['quantity'];
+                $tax += cart_product_tax($cartItem, $product, false) * $cartItem['quantity'];
                 $coupon_discount += $cartItem['discount'];
 
                 $product_variation = $cartItem['variation'];
 
                 $product_stock = $product->stocks->where('variant', $product_variation)->first();
                 if ($product->digital != 1 && $cartItem['quantity'] > $product_stock->qty) {
-                    flash(translate('The requested quantity is not available for ') . $product->getTranslation('name'))->warning();
+                    flash(translate('The requested quantity is not available for ').$product->getTranslation('name'))->warning();
                     $order->delete();
                     return redirect()->route('cart')->send();
                 } elseif ($product->digital != 1) {
@@ -272,7 +270,8 @@ class OrderController extends Controller
                         $referred_by_user = User::where('referral_code', $order_detail->product_referral_code)->first();
 
                         $affiliateController = new AffiliateController;
-                        $affiliateController->processAffiliateStats($referred_by_user->id, 0, $order_detail->quantity, 0, 0);
+                        $affiliateController->processAffiliateStats($referred_by_user->id, 0, $order_detail->quantity,
+                            0, 0);
                     }
                 }
             }
@@ -302,7 +301,7 @@ class OrderController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param int $id
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
 
@@ -310,7 +309,7 @@ class OrderController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param int $id
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function edit($id)
@@ -321,8 +320,8 @@ class OrderController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param int $id
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id)
@@ -333,7 +332,7 @@ class OrderController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param int $id
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function destroy($id)
@@ -382,11 +381,11 @@ class OrderController extends Controller
         $order->delivery_status = $request->status;
         $order->save();
 
-        if($request->status == 'delivered'){
+        if ($request->status == 'delivered') {
             $order->delivered_date = date("Y-m-d H:i:s");
             $order->save();
         }
-        
+
         if ($request->status == 'cancelled' && $order->payment_type == 'wallet') {
             $user = User::where('id', $order->user_id)->first();
             $user->balance += $order->grand_total;
@@ -394,7 +393,7 @@ class OrderController extends Controller
         }
 
         // If the order is cancelled and the seller commission is calculated, deduct seller earning
-        if($request->status == 'cancelled' && $order->user->user_type == 'seller' && $order->payment_status == 'paid' && $order->commission_calculated == 1){
+        if ($request->status == 'cancelled' && $order->user->user_type == 'seller' && $order->payment_status == 'paid' && $order->commission_calculated == 1) {
             $sellerEarning = $order->commissionHistory->seller_earning;
             $shop = $order->shop;
             $shop->admin_to_pay -= $sellerEarning;
@@ -438,19 +437,22 @@ class OrderController extends Controller
                         $referred_by_user = User::where('referral_code', $orderDetail->product_referral_code)->first();
 
                         $affiliateController = new AffiliateController;
-                        $affiliateController->processAffiliateStats($referred_by_user->id, 0, 0, $no_of_delivered, $no_of_canceled);
+                        $affiliateController->processAffiliateStats($referred_by_user->id, 0, 0, $no_of_delivered,
+                            $no_of_canceled);
                     }
                 }
             }
         }
         // Delivery Status change email notification to Admin, seller, Customer
-        EmailUtility::order_email($order, $request->status);  
+        EmailUtility::order_email($order, $request->status);
 
         // Delivery Status change SMS notification
-        if (addon_is_activated('otp_system') && SmsTemplate::where('identifier', 'delivery_status_change')->first()->status == 1) {
+        if (addon_is_activated('otp_system') && SmsTemplate::where('identifier',
+                'delivery_status_change')->first()->status == 1) {
             try {
                 SmsUtility::delivery_status_change(json_decode($order->shipping_address)->phone, $order);
-            } catch (\Exception $e) {}
+            } catch (\Exception $e) {
+            }
         }
 
         //Send web Notifications to user
@@ -526,8 +528,8 @@ class OrderController extends Controller
         }
 
         // Payment Status change email notification to Admin, seller, Customer
-        if($request->status == 'paid'){
-            EmailUtility::order_email($order, $request->status);  
+        if ($request->status == 'paid') {
+            EmailUtility::order_email($order, $request->status);
         }
 
         //Sends Web Notifications to Admin, seller, Customer
@@ -548,7 +550,8 @@ class OrderController extends Controller
         }
 
 
-        if (addon_is_activated('otp_system') && SmsTemplate::where('identifier', 'payment_status_change')->first()->status == 1) {
+        if (addon_is_activated('otp_system') && SmsTemplate::where('identifier',
+                'payment_status_change')->first()->status == 1) {
             try {
                 SmsUtility::payment_status_change(json_decode($order->shipping_address)->phone, $order);
             } catch (\Exception $e) {
@@ -583,7 +586,7 @@ class OrderController extends Controller
 
             if (env('MAIL_USERNAME') != null && get_setting('delivery_boy_mail_notification') == '1') {
                 $array['view'] = 'emails.invoice';
-                $array['subject'] = translate('You are assigned to delivery an order. Order code') . ' - ' . $order->code;
+                $array['subject'] = translate('You are assigned to delivery an order. Order code').' - '.$order->code;
                 $array['from'] = env('MAIL_FROM_ADDRESS');
                 $array['order'] = $order;
 
@@ -593,7 +596,8 @@ class OrderController extends Controller
                 }
             }
 
-            if (addon_is_activated('otp_system') && SmsTemplate::where('identifier', 'assign_delivery_boy')->first()->status == 1) {
+            if (addon_is_activated('otp_system') && SmsTemplate::where('identifier',
+                    'assign_delivery_boy')->first()->status == 1) {
                 try {
                     SmsUtility::assign_delivery_boy($order->delivery_boy->phone, $order->code);
                 } catch (\Exception $e) {
@@ -606,31 +610,31 @@ class OrderController extends Controller
 
     public function orderBulkExport(Request $request)
     {
-        if($request->id){
-          return Excel::download(new OrdersExport($request->id), 'orders.xlsx');
+        if ($request->id) {
+            return Excel::download(new OrdersExport($request->id), 'orders.xlsx');
         }
         return back();
     }
 
-    public function unpaid_order_payment_notification_send(Request $request){
-        if($request->order_ids != null){
+    public function unpaid_order_payment_notification_send(Request $request)
+    {
+        if ($request->order_ids != null) {
             $notificationType = get_notification_type('complete_unpaid_order_payment', 'type');
-            foreach (explode(",",$request->order_ids) as $order_id) {
+            foreach (explode(",", $request->order_ids) as $order_id) {
                 $order = Order::where('id', $order_id)->first();
                 $user = $order->user;
-                if($notificationType->status == 1 && $order->payment_status == 'unpaid'){
-                    $order_notification['order_id']     = $order->id;
-                    $order_notification['order_code']   = $order->code;
-                    $order_notification['user_id']      = $order->user_id;
-                    $order_notification['seller_id']    = $order->seller_id;
-                    $order_notification['status']       = $order->payment_status;
+                if ($notificationType->status == 1 && $order->payment_status == 'unpaid') {
+                    $order_notification['order_id'] = $order->id;
+                    $order_notification['order_code'] = $order->code;
+                    $order_notification['user_id'] = $order->user_id;
+                    $order_notification['seller_id'] = $order->seller_id;
+                    $order_notification['status'] = $order->payment_status;
                     $order_notification['notification_type_id'] = $notificationType->id;
                     Notification::send($user, new OrderNotification($order_notification));
                 }
             }
             flash(translate('Notification Sent Successfully.'))->success();
-        }
-        else{
+        } else {
             flash(translate('Something went wrong!.'))->warning();
         }
         return back();
