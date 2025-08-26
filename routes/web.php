@@ -88,7 +88,7 @@ Route::controller(AizUploadController::class)->group(function () {
     Route::get('/aiz-uploader/download/{id}', 'attachment_download')->name('download_attachment');
 });
 
-Route::group(['middleware' => ['prevent-back-history', 'handle-demo-login']], function () {
+Route::group(['middleware' => ['web', 'check-log']], function () {
     Auth::routes(['verify' => true]);
 });
 

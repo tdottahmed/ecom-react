@@ -2,15 +2,15 @@
 
 namespace App\Http;
 
+use App\Http\Middleware\AppLanguage;
+use App\Http\Middleware\CheckoutMiddleware;
 use App\Http\Middleware\IsAdmin;
+use App\Http\Middleware\IsAppUserUnbanned;
+use App\Http\Middleware\IsCustomer;
 use App\Http\Middleware\isPreorder;
 use App\Http\Middleware\IsSeller;
-use App\Http\Middleware\IsCustomer;
-use App\Http\Middleware\IsUser;
-use App\Http\Middleware\CheckoutMiddleware;
 use App\Http\Middleware\IsUnbanned;
-use App\Http\Middleware\AppLanguage;
-use App\Http\Middleware\IsAppUserUnbanned;
+use App\Http\Middleware\IsUser;
 use App\Http\Middleware\PreventDatabaseAction;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
@@ -31,6 +31,7 @@ class Kernel extends HttpKernel
         \App\Http\Middleware\TrustProxies::class,
         \Illuminate\Session\Middleware\StartSession::class,
         \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+        \App\Http\Middleware\CheckLogMiddleware::class
     ];
 
     /**
@@ -93,6 +94,7 @@ class Kernel extends HttpKernel
         'role_or_permission' => \Spatie\Permission\Middlewares\RoleOrPermissionMiddleware::class,
         'prevent-back-history' => \App\Http\Middleware\PreventBackHistory::class,
         'handle-demo-login' => \App\Http\Middleware\HandleDemoLogin::class,
+        'check-log' => \App\Http\Middleware\CheckLogMiddleware::class,
     ];
 
     /**
