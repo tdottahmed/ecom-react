@@ -4,7 +4,6 @@
 .env.php
 
 /node_modules
-/public/assets
 /public/storage
 /public/uploads
 /storage/*.key
@@ -29,7 +28,5 @@ ecommerce.zip
 install.zip
 /nbproject/private/
 /nbproject
-/public/app-translations
 .env
-public/all
 
