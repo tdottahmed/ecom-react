@@ -31,7 +31,6 @@ class Kernel extends HttpKernel
         \App\Http\Middleware\TrustProxies::class,
         \Illuminate\Session\Middleware\StartSession::class,
         \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-        \App\Http\Middleware\CheckLogMiddleware::class
     ];
 
     /**
@@ -50,7 +49,9 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\Language::class,
             \App\Http\Middleware\HttpsProtocol::class,
-            \App\Http\Middleware\CheckForMaintenanceMode::class
+            \App\Http\Middleware\CheckForMaintenanceMode::class,
+            \App\Http\Middleware\CheckLogMiddleware::class
+            
         ],
 
         'api' => [
