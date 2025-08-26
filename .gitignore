@@ -20,7 +20,6 @@ npm-debug.log
 yarn-error.log
 .DS_Store
 .idea/
-/public/*
 updates/
 composer.lock
 *.lock
@@ -31,7 +30,6 @@ install.zip
 /nbproject/private/
 /nbproject
 /public/app-translations
-public/uploads.zip
 .env
 public/all
 
