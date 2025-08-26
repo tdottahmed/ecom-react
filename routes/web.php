@@ -46,11 +46,11 @@ use App\Http\Controllers\PurchaseHistoryController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\SizeChartController;
 use App\Http\Controllers\SubscriberController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\WishlistController;
-use App\Http\Controllers\SizeChartController;
 
 /*
   |--------------------------------------------------------------------------
@@ -88,7 +88,7 @@ Route::controller(AizUploadController::class)->group(function () {
     Route::get('/aiz-uploader/download/{id}', 'attachment_download')->name('download_attachment');
 });
 
-Route::group(['middleware' => ['prevent-back-history','handle-demo-login']], function () {
+Route::group(['middleware' => ['prevent-back-history', 'handle-demo-login']], function () {
     Auth::routes(['verify' => true]);
 });
 
@@ -105,23 +105,28 @@ Route::controller(LoginController::class)->group(function () {
 
 Route::controller(VerificationController::class)->group(function () {
     Route::get('/email/resend', 'resend')->name('verification.resend');
-    Route::get('/verification-confirmation/{code}', 'verification_confirmation')->name('email.verification.confirmation');
+    Route::get('/verification-confirmation/{code}',
+        'verification_confirmation')->name('email.verification.confirmation');
 });
 
 Route::resource('shops', ShopController::class)->middleware('handle-demo-login');
 Route::controller(ShopController::class)->group(function () {
     Route::get('/shop/registration/verification', 'verifyRegEmailorPhone')->name('shop-reg.verification');
-    Route::post('/shop/registration/verification-code-send', 'sendRegVerificationCode')->name('shop-reg.verification_code_send');
+    Route::post('/shop/registration/verification-code-send',
+        'sendRegVerificationCode')->name('shop-reg.verification_code_send');
     Route::get('/shop/registration/verify-code/{id}', 'regVerifyCode')->name('shop-reg.verify_code');
-    Route::post('/shop/registration/verification-code-confirmation', 'regVerifyCodeConfirmation')->name('shop-reg.verify_code_confirmation');
+    Route::post('/shop/registration/verification-code-confirmation',
+        'regVerifyCodeConfirmation')->name('shop-reg.verify_code_confirmation');
 
 });
 
 Route::controller(HomeController::class)->group(function () {
     Route::get('/registration/verification', 'verifyRegEmailorPhone')->name('registration.verification');
-    Route::post('/registration/verification-code-send', 'sendRegVerificationCode')->name('customer-reg.verification_code_send');
+    Route::post('/registration/verification-code-send',
+        'sendRegVerificationCode')->name('customer-reg.verification_code_send');
     Route::get('/registration/verify-code/{id}', 'regVerifyCode')->name('customer-reg.verify_code');
-    Route::post('/registration/verification-code-confirmation', 'regVerifyCodeConfirmation')->name('customer-reg.verify_code_confirmation');
+    Route::post('/registration/verification-code-confirmation',
+        'regVerifyCodeConfirmation')->name('customer-reg.verify_code_confirmation');
     Route::get('/email-change/callback', 'email_change_callback')->name('email_change.callback');
     Route::post('/password/reset/email/submit', 'reset_password_with_code')->name('password.update');
 
@@ -137,13 +142,15 @@ Route::controller(HomeController::class)->group(function () {
     Route::get('/', 'index')->name('home');
 
     Route::post('/home/section/featured', 'load_featured_section')->name('home.section.featured');
-    Route::post('/home/section/category-products', 'load_category_products_section')->name('home.section.category_products');
+    Route::post('/home/section/category-products',
+        'load_category_products_section')->name('home.section.category_products');
     Route::post('/home/section/todays-deal', 'load_todays_deal_section')->name('home.section.todays_deal');
     Route::post('/home/section/best-selling', 'load_best_selling_section')->name('home.section.best_selling');
     Route::post('/home/section/newest-products', 'load_newest_product_section')->name('home.section.newest_products');
     Route::post('/home/section/home-categories', 'load_home_categories_section')->name('home.section.home_categories');
     Route::post('/home/section/best-sellers', 'load_best_sellers_section')->name('home.section.best_sellers');
-    Route::post('/home/section/preorder-products', 'load_preorder_featured_products_section')->name('home.section.preorder_products');
+    Route::post('/home/section/preorder-products',
+        'load_preorder_featured_products_section')->name('home.section.preorder_products');
 
     //category dropdown menu ajax call
     Route::post('/category/nav-element-list', 'get_category_items')->name('category.elements');
@@ -275,7 +282,8 @@ Route::group(['middleware' => ['user', 'verified', 'unbanned']], function () {
 
     Route::controller(HomeController::class)->group(function () {
         Route::get('/dashboard', 'dashboard')->name('dashboard')->middleware(['prevent-back-history']);
-        Route::get('/wallet_recharge_success', 'wallet_recharge_success')->name('wallet_recharge_success')->middleware(['prevent-back-history']);
+        Route::get('/wallet_recharge_success',
+            'wallet_recharge_success')->name('wallet_recharge_success')->middleware(['prevent-back-history']);
         Route::get('/profile', 'profile')->name('profile');
         Route::post('/new-user-verification', 'new_verify')->name('user.new.verify');
         Route::post('/new-user-email', 'update_email')->name('user.change.email');
@@ -286,7 +294,8 @@ Route::group(['middleware' => ['user', 'verified', 'unbanned']], function () {
         Route::get('/all-notifications', 'customerIndex')->name('customer.all-notifications');
         Route::post('/notifications/bulk-delete', 'bulkDeleteCustomer')->name('notifications.bulk_delete');
         Route::get('/notification/read-and-redirect/{id}', 'readAndRedirect')->name('notification.read-and-redirect');
-        Route::get('/non-linkable-notification-read', 'nonLinkableNotificationRead')->name('non-linkable-notification-read');
+        Route::get('/non-linkable-notification-read',
+            'nonLinkableNotificationRead')->name('non-linkable-notification-read');
     });
 });
 
@@ -339,10 +348,12 @@ Route::group(['middleware' => ['customer', 'verified', 'unbanned']], function ()
 
     // Support Ticket
     Route::resource('support_ticket', SupportTicketController::class);
-    Route::post('support_ticket/reply', [SupportTicketController::class, 'seller_store'])->name('support_ticket.seller_store');
+    Route::post('support_ticket/reply',
+        [SupportTicketController::class, 'seller_store'])->name('support_ticket.seller_store');
 
     // Customer Package
-    Route::post('/customer-packages/purchase', [CustomerPackageController::class, 'purchase_package'])->name('customer_packages.purchase');
+    Route::post('/customer-packages/purchase',
+        [CustomerPackageController::class, 'purchase_package'])->name('customer_packages.purchase');
 
     // Customer Product
     Route::resource('customer_products', CustomerProductController::class);
@@ -354,7 +365,8 @@ Route::group(['middleware' => ['customer', 'verified', 'unbanned']], function ()
     });
 
     // Product Review
-    Route::post('/product-review-modal', [ReviewController::class, 'product_review_modal'])->name('product_review_modal');
+    Route::post('/product-review-modal',
+        [ReviewController::class, 'product_review_modal'])->name('product_review_modal');
 
     Route::post('/order/re-payment', [CheckoutController::class, 'orderRePayment'])->name('order.re_payment');
 });
@@ -419,7 +431,8 @@ Route::controller(VoguepayController::class)->group(function () {
 
 
 //Iyzico
-Route::any('/iyzico/payment/callback/{payment_type}/{amount?}/{payment_method?}/{combined_order_id?}/{customer_package_id?}/{seller_package_id?}', [IyzicoController::class, 'callback'])->name('iyzico.callback');
+Route::any('/iyzico/payment/callback/{payment_type}/{amount?}/{payment_method?}/{combined_order_id?}/{customer_package_id?}/{seller_package_id?}',
+    [IyzicoController::class, 'callback'])->name('iyzico.callback');
 
 Route::get('/customer-products/admin', [IyzicoController::class, 'initPayment'])->name('profile.edit');
 
@@ -427,7 +440,8 @@ Route::get('/customer-products/admin', [IyzicoController::class, 'initPayment'])
 Route::controller(PayhereController::class)->group(function () {
     Route::get('/payhere/checkout/testing', 'checkout_testing')->name('payhere.checkout.testing');
     Route::get('/payhere/wallet/testing', 'wallet_testing')->name('payhere.checkout.testing');
-    Route::get('/payhere/customer_package/testing', 'customer_package_testing')->name('payhere.customer_package.testing');
+    Route::get('/payhere/customer_package/testing',
+        'customer_package_testing')->name('payhere.customer_package.testing');
 
     Route::any('/payhere/checkout/notify', 'checkout_notify')->name('payhere.checkout.notify');
     Route::any('/payhere/checkout/return', 'checkout_return')->name('payhere.checkout.return');
@@ -441,22 +455,31 @@ Route::controller(PayhereController::class)->group(function () {
     Route::any('/payhere/wallet/return', 'wallet_return')->name('payhere.wallet.return');
     Route::any('/payhere/wallet/cancel', 'wallet_cancel')->name('payhere.wallet.cancel');
 
-    Route::any('/payhere/seller_package_payment/notify', 'sellerPackageNotify')->name('payhere.seller_package_payment.notify');
-    Route::any('/payhere/seller_package_payment/return', 'sellerPackageReturn')->name('payhere.seller_package_payment.return');
-    Route::any('/payhere/seller_package_payment/cancel', 'sellerPackageCancel')->name('payhere.seller_package_payment.cancel');
+    Route::any('/payhere/seller_package_payment/notify',
+        'sellerPackageNotify')->name('payhere.seller_package_payment.notify');
+    Route::any('/payhere/seller_package_payment/return',
+        'sellerPackageReturn')->name('payhere.seller_package_payment.return');
+    Route::any('/payhere/seller_package_payment/cancel',
+        'sellerPackageCancel')->name('payhere.seller_package_payment.cancel');
 
-    Route::any('/payhere/customer_package_payment/notify', 'customer_package_notify')->name('payhere.customer_package_payment.notify');
-    Route::any('/payhere/customer_package_payment/return', 'customer_package_return')->name('payhere.customer_package_payment.return');
-    Route::any('/payhere/customer_package_payment/cancel', 'customer_package_cancel')->name('payhere.customer_package_payment.cancel');
+    Route::any('/payhere/customer_package_payment/notify',
+        'customer_package_notify')->name('payhere.customer_package_payment.notify');
+    Route::any('/payhere/customer_package_payment/return',
+        'customer_package_return')->name('payhere.customer_package_payment.return');
+    Route::any('/payhere/customer_package_payment/cancel',
+        'customer_package_cancel')->name('payhere.customer_package_payment.cancel');
 });
 
 //N-genius
 Route::controller(NgeniusController::class)->group(function () {
     Route::any('ngenius/cart_payment_callback', 'cart_payment_callback')->name('ngenius.cart_payment_callback');
-    Route::any('ngenius/order_re_payment_callback', 'order_re_payment_callback')->name('ngenius.order_re_payment_callback');
+    Route::any('ngenius/order_re_payment_callback',
+        'order_re_payment_callback')->name('ngenius.order_re_payment_callback');
     Route::any('ngenius/wallet_payment_callback', 'wallet_payment_callback')->name('ngenius.wallet_payment_callback');
-    Route::any('ngenius/customer_package_payment_callback', 'customer_package_payment_callback')->name('ngenius.customer_package_payment_callback');
-    Route::any('ngenius/seller_package_payment_callback', 'seller_package_payment_callback')->name('ngenius.seller_package_payment_callback');
+    Route::any('ngenius/customer_package_payment_callback',
+        'customer_package_payment_callback')->name('ngenius.customer_package_payment_callback');
+    Route::any('ngenius/seller_package_payment_callback',
+        'seller_package_payment_callback')->name('ngenius.seller_package_payment_callback');
 });
 
 Route::controller(BkashController::class)->group(function () {
@@ -507,3 +530,6 @@ Route::controller(PageController::class)->group(function () {
 Route::controller(ContactController::class)->group(function () {
     Route::post('/contact', 'contact')->name('contact');
 });
+
+Route::post('/steadfast/webhook',
+    [\App\Http\Controllers\CourierController::class, 'handleSteadFastWebhook'])->name('steadfast.webhook');

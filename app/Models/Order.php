@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use App\Traits\PreventDemoModeChanges;
+use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
     use PreventDemoModeChanges;
+
+    protected $guarded = [];
+
     public function orderDetails()
     {
         return $this->hasMany(OrderDetail::class);
