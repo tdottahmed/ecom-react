@@ -3,22 +3,16 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Foundation\Auth\AuthenticatesUsers;
-use GeneaLabs\LaravelSocialiter\Facades\Socialiter;
-use Socialite;
-use App\Models\User;
-use App\Models\Customer;
 use App\Models\Cart;
-use App\Services\SocialRevoke;
-use App\Utility\EmailUtility;
-use Session;
-use Illuminate\Http\Request;
-use CoreComponentRepository;
-use Illuminate\Support\Facades\Http;
-use GuzzleHttp\Client;
-use Storage;
+use App\Models\User;
 use App\Rules\Recaptcha;
+use App\Utility\EmailUtility;
+use Illuminate\Foundation\Auth\AuthenticatesUsers;
+use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Session;
+use Socialite;
+use Storage;
 
 class LoginController extends Controller
 {
@@ -104,7 +98,8 @@ class LoginController extends Controller
         }
 
         if (session('temp_user_id') != null) {
-            Cart::where('user_id', auth()->user()->id)->delete(); // If previous data is available for this user, delete first
+            Cart::where('user_id',
+                auth()->user()->id)->delete(); // If previous data is available for this user, delete first
             Cart::where('temp_user_id', session('temp_user_id'))
                 ->update([
                     'user_id' => auth()->user()->id,
@@ -123,6 +118,7 @@ class LoginController extends Controller
             return redirect()->route('dashboard');
         }
     }
+
     /**
      * Obtain the user information from Google.
      *
@@ -183,7 +179,8 @@ class LoginController extends Controller
                 if ((get_email_template_data('customer_reg_email_to_admin', 'status') == 1)) {
                     try {
                         EmailUtility::customer_registration_email('customer_reg_email_to_admin', $newUser, null);
-                    } catch (\Exception $e) {}
+                    } catch (\Exception $e) {
+                    }
                 }
             }
         }
@@ -236,11 +233,12 @@ class LoginController extends Controller
     protected function validateLogin(Request $request)
     {
         $request->validate([
-            'email'    => 'required_without:phone',
-            'phone'    => 'required_without:email',
+            'email' => 'required_without:phone',
+            'phone' => 'required_without:email',
             'password' => 'required|string',
-              'g-recaptcha-response' => [
-                Rule::when(get_setting('google_recaptcha') == 1  && get_setting($request['recaptcha_action']) == 1 , ['required', new Recaptcha()], ['sometimes'])
+            'g-recaptcha-response' => [
+                Rule::when(get_setting('google_recaptcha') == 1 && get_setting($request['recaptcha_action']) == 1,
+                    ['required', new Recaptcha()], ['sometimes'])
             ],
         ]);
     }
@@ -254,7 +252,9 @@ class LoginController extends Controller
     protected function credentials(Request $request)
     {
         if ($request->get('phone') != null) {
-            return ['phone' => "+{$request['country_code']}{$request['phone']}", 'password' => $request->get('password')];
+            return [
+                'phone' => "+{$request['country_code']}{$request['phone']}", 'password' => $request->get('password')
+            ];
         } elseif ($request->get('email') != null) {
             return $request->only($this->username(), 'password');
         }
@@ -267,23 +267,22 @@ class LoginController extends Controller
     public function authenticated()
     {
         if (session('temp_user_id') != null) {
-            if(auth()->user()->user_type == 'customer'){
+            if (auth()->user()->user_type == 'customer') {
                 Cart::where('temp_user_id', session('temp_user_id'))
-                ->update(
-                    [
-                        'user_id' => auth()->user()->id,
-                        'temp_user_id' => null
-                    ]
-                );
-            }
-            else {
+                    ->update(
+                        [
+                            'user_id' => auth()->user()->id,
+                            'temp_user_id' => null
+                        ]
+                    );
+            } else {
                 Cart::where('temp_user_id', session('temp_user_id'))->delete();
             }
             Session::forget('temp_user_id');
         }
 
         if (auth()->user()->user_type == 'admin' || auth()->user()->user_type == 'staff') {
-            CoreComponentRepository::instantiateShopRepository();
+            //CoreComponentRepository::instantiateShopRepository();
             return redirect()->route('admin.dashboard');
         } elseif (auth()->user()->user_type == 'seller') {
             return redirect()->route('seller.dashboard');
@@ -362,12 +361,12 @@ class LoginController extends Controller
             foreach ($uploads as $upload) {
                 if (env('FILESYSTEM_DRIVER') == 's3') {
                     Storage::disk('s3')->delete($upload->file_name);
-                    if (file_exists(public_path() . '/' . $upload->file_name)) {
-                        unlink(public_path() . '/' . $upload->file_name);
+                    if (file_exists(public_path().'/'.$upload->file_name)) {
+                        unlink(public_path().'/'.$upload->file_name);
                         $upload->delete();
                     }
                 } else {
-                    unlink(public_path() . '/' . $upload->file_name);
+                    unlink(public_path().'/'.$upload->file_name);
                     $upload->delete();
                 }
             }

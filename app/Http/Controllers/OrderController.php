@@ -20,7 +20,6 @@ use App\Utility\EmailUtility;
 use App\Utility\NotificationUtility;
 use App\Utility\SmsUtility;
 use Auth;
-use CoreComponentRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Route;
@@ -42,7 +41,7 @@ class OrderController extends Controller
     // All Orders
     public function all_orders(Request $request)
     {
-        CoreComponentRepository::instantiateShopRepository();
+        //CoreComponentRepository::instantiateShopRepository();
 
         $date = $request->date;
         $sort_search = null;
