@@ -11,11 +11,12 @@ use App\Models\CouponUsage;
 use App\Models\Order;
 use App\Models\OrderDetail;
 use App\Models\OrdersExport;
-use App\Models\OrderShipment;
 use App\Models\Product;
 use App\Models\SmsTemplate;
 use App\Models\User;
 use App\Notifications\OrderNotification;
+use App\Services\PathaoCourierService;
+use App\Services\SteadFastCourierServic;
 use App\Utility\EmailUtility;
 use App\Utility\NotificationUtility;
 use App\Utility\SmsUtility;
@@ -25,7 +26,6 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Route;
 use Maatwebsite\Excel\Facades\Excel;
 use Mail;
-use SteadFast\SteadFastCourierLaravelPackage\Facades\SteadfastCourier;
 
 class OrderController extends Controller
 {
@@ -645,38 +645,26 @@ class OrderController extends Controller
     {
         $order = Order::findOrFail($request->order_id);
         $shippingDetails = json_decode($order->shipping_address);
-        $cod_amount = $order->orderDetails->sum('price') + $order->orderDetails()->sum('shipping_cost');
-        $orderData = [
-            'invoice' => $order->code,
-            'recipient_name' => $shippingDetails->name,
-            'recipient_phone' => $shippingDetails->phone,
-            'recipient_address' => $shippingDetails->address.', '.$shippingDetails->city.', '.$shippingDetails->state.', '.$shippingDetails->postal_code,
-            'cod_amount' => $cod_amount,
-            'note' => $order->additional_info
-        ];
-        $response = SteadfastCourier::placeOrder($orderData);
-        if ($response['status'] == 200) {
-            OrderShipment::create([
-                'order_id' => $order->id,
-                'invoice_no' => $response['consignment']['invoice'],
-                'consignment_no' => $response['consignment']['consignment_id'],
-                'tracking_code' => $response['consignment']['tracking_code'],
-                'carrier' => 'steadfast',
-                'status' => $response['consignment']['status'],
-                'recipient_name' => $response['consignment']['recipient_name'],
-                'recipient_address' => $response['consignment']['recipient_address'],
-                'recipient_phone' => $response['consignment']['recipient_phone'],
-                'phone' => $response['consignment']['alternative_phone'],
-                'note' => $response['consignment']['note']
-            ]);
-            $order->update([
-                'delivery_status' => 'delivered',
-            ]);
-            flash(translate('Courier order created successfully'))->success();
+
+//        try {
+        $courierService = match ($request->courier) {
+            'steadfast' => new SteadFastCourierServic($order, $shippingDetails),
+            'pathao' => new PathaoCourierService($order, $shippingDetails),
+            default => throw new \Exception('Invalid courier service')
+        };
+        $response = $courierService->handle();
+
+        if ($response['success']) {
+            flash(translate('Order courier created successfully'))->success();
             return back();
         }
 
-        flash(translate('Something went wrong'))->error();
+        flash(translate($response['message'] ?? 'Failed to create courier order'))->error();
         return back();
+
+//        } catch (\Exception $e) {
+//            flash(translate('Something went wrong'))->error();
+//            return back();
+//        }
     }
 }

@@ -171,7 +171,7 @@ return [
         Illuminate\Validation\ValidationServiceProvider::class,
         Illuminate\View\ViewServiceProvider::class,
         KingFlamez\Rave\RaveServiceProvider::class,
-        
+
         /*
          * Package Service Providers...
          */
@@ -188,6 +188,7 @@ return [
         App\Providers\ComposerServiceProvider::class,
 
         Spatie\Permission\PermissionServiceProvider::class,
+        ShahariarAhmad\CourierFraudCheckerBd\CourierFraudCheckerBdServiceProvider::class,
 
     ],
 
@@ -240,6 +241,7 @@ return [
         'PDF' => niklasravnsborg\LaravelPdf\Facades\Pdf::class,
         'Str' => Illuminate\Support\Str::class,
         'Rave' => KingFlamez\Rave\Facades\Rave::class,
+        'CourierFraudCheckerBd' => ShahariarAhmad\CourierFraudCheckerBd\Facade\CourierFraudCheckerBd::class,
     ],
 
 ];

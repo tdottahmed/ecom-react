@@ -37,21 +37,21 @@ return [
     ],
 
     'google' => [
-        'client_id'     => env('GOOGLE_CLIENT_ID'),
+        'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-        'redirect'      => env('APP_URL').'/social-login/google/callback',
+        'redirect' => env('APP_URL').'/social-login/google/callback',
     ],
 
     'facebook' => [
-        'client_id'     => env('FACEBOOK_CLIENT_ID'),
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
         'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
-        'redirect'      => env('APP_URL').'/social-login/facebook/callback',
+        'redirect' => env('APP_URL').'/social-login/facebook/callback',
     ],
 
     'twitter' => [
-        'client_id'     => env('TWITTER_CLIENT_ID'),
+        'client_id' => env('TWITTER_CLIENT_ID'),
         'client_secret' => env('TWITTER_CLIENT_SECRET'),
-        'redirect'      => env('APP_URL').'/social-login/twitter/callback',
+        'redirect' => env('APP_URL').'/social-login/twitter/callback',
     ],
 
     'paytm-wallet' => [
@@ -62,5 +62,14 @@ return [
         'channel' => env('PAYTM_CHANNEL'),
         'industry_type' => env('PAYTM_INDUSTRY_TYPE'),
     ],
+    'pathao-courier' => [
+        'client_id' => env('PATHAO_CLIENT_ID'),
+        'client_secret' => env('PATHAO_CLIENT_SECRET'),
+        'pathao_username' => env('PATHAO_USERNAME'),
+        'pathao_password' => env('PATHAO_PASSWORD'),
+        'aladdin_url' => env('PATHAO_ALADDIN_URL'),
+        'base_url' => env('PATHAO_BASE_URL'),
+
+    ]
 
 ];

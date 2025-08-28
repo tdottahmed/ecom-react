@@ -176,50 +176,11 @@
                             </td>
                             <td>
                                 @if($order->delivery_status=='pending')
-                                    <button type="button" class="btn btn-soft-success btn-sm" data-toggle="modal"
-                                            data-target="#courierModal{{ $order->id }}">
+                                    <button type="button" class="btn btn-soft-success btn-sm"
+                                            onclick="showCourierModal({{ $order->id }})">
                                         <i class="las la-check"></i>
                                         Courier now
                                     </button>
-                                    <div id="courierModal{{ $order->id }}" class="modal fade">
-                                        <div class="modal-dialog modal-md modal-dialog-centered"
-                                             style="max-width: 540px;">
-                                            <div class="modal-content pb-2rem px-2rem">
-                                                <div class="modal-header border-0">
-                                                    <h5 class="modal-title">{{ translate('Select Courier') }}</h5>
-                                                    <button type="button" class="close" data-dismiss="modal"></button>
-                                                </div>
-                                                <form action="{{ route('order.courier', $order->id) }}" method="POST">
-                                                    @csrf
-                                                    <input type="hidden" name="order_id" value="{{ $order->id }}">
-
-                                                    <div class="modal-body">
-                                                        <div class="form-group row">
-                                                            <label
-                                                                class="col-md-3 col-form-label">{{ translate('Courier') }}</label>
-                                                            <div class="col-md-9">
-                                                                <select class="form-control" name="courier" id="courier"
-                                                                        required>
-                                                                    <option
-                                                                        value="">{{ translate('Choose Courier') }}</option>
-                                                                    <option value="pathao">{{ __('Pathao') }}</option>
-                                                                    <option
-                                                                        value="steadfast">{{ __('Steadfast') }}</option>
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                        <div class="text-center mt-3">
-                                                            <button type="submit"
-                                                                    class="btn btn-primary rounded-2 fs-13 fw-700 w-250px">
-                                                                {{ translate('Sent to Courier') }}
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-
                                 @else
                                     {{ translate(ucfirst(str_replace('_', ' ', $order->delivery_status))) }}
                                 @endif
@@ -311,6 +272,39 @@
     <!-- Bulk Delete modal -->
     @include('modals.bulk_delete_modal')
 
+    <!-- Courier modal -->
+    <div id="courierModal" class="modal fade">
+        <div class="modal-dialog modal-md modal-dialog-centered" style="max-width: 540px;">
+            <div class="modal-content pb-2rem px-2rem">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">{{ translate('Select Courier') }}</h5>
+                    <button type="button" class="close" data-dismiss="modal"></button>
+                </div>
+                <form id="courierForm" method="POST">
+                    @csrf
+                    <input type="hidden" name="order_id" id="courier_order_id">
+                    <div class="modal-body">
+                        <div class="form-group row">
+                            <label class="col-md-3 col-form-label">{{ translate('Courier') }}</label>
+                            <div class="col-md-9">
+                                <select class="form-control" name="courier" id="courier" required>
+                                    <option value="">{{ translate('Choose Courier') }}</option>
+                                    <option value="pathao">{{ __('Pathao') }}</option>
+                                    <option value="steadfast">{{ __('Steadfast') }}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <button type="submit" class="btn btn-primary rounded-2 fs-13 fw-700 w-250px">
+                                {{ translate('Sent to Courier') }}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     {{-- Bulk Unpaid Order Payment Notification --}}
     <div id="complete_unpaid_order_payment" class="modal fade">
         <div class="modal-dialog modal-md modal-dialog-centered" style="max-width: 540px;">
@@ -336,6 +330,14 @@
 
 @section('script')
     <script type="text/javascript">
+        function showCourierModal(orderId) {
+            $('#courier_order_id').val(orderId);
+            const courierRoute = "{{ route('order.courier') }}";
+
+            $('#courierForm').attr('action', courierRoute);
+            $('#courierModal').modal('show');
+        }
+
         $(document).on("change", ".check-all", function () {
             if (this.checked) {
                 // Iterate each checkbox

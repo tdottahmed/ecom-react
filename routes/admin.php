@@ -199,6 +199,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     });
 
     // Seller
+
     Route::resource('sellers', SellerController::class);
     Route::controller(SellerController::class)->group(function () {
         Route::get('/seller/rating-followers', 'index')->name('sellers.rating_followers');
