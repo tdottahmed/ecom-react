@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\OrderShipment;
+use App\Models\PathaoCity;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -27,6 +28,7 @@ class PathaoCourierService
 
     public function handle(): array
     {
+        dd($this->createOrUpdatedCity());
 //        try {
         // Get access token first
         $token = $this->getAccessToken();
@@ -34,9 +36,11 @@ class PathaoCourierService
             return $token;
         }
         $this->access_token = $token['access_token'];
+        $cities = $this->getCities();
+
 
         $cod_amount = $this->order->orderDetails->sum('price') + $this->order->orderDetails()->sum('shipping_cost');
-
+//        $city_id = City::where('name', $this->shipping_address->city)->first()->id;
         $orderData = [
             'store_id' => config('services.pathao-courier.store_id'),
             'merchant_order_id' => $this->order->code,
@@ -62,6 +66,7 @@ class PathaoCourierService
 
         // First attempt
         $response = $client->post($url, $orderData);
+        dd($response);
 
         // If unauthorized, try to refresh token once and retry
         if ($response->status() === 401) {
@@ -114,62 +119,62 @@ class PathaoCourierService
 
     protected function getAccessToken()
     {
-        try {
-            // Try cache first
-            $cached = $this->loadTokenFromCache();
-            if ($cached && !$this->isTokenExpiringSoon($cached)) {
-                return [
-                    'success' => true,
-                    'access_token' => $cached['access_token'],
-                ];
-            }
-
-            // If we have a cached refresh_token, try refresh first
-            if ($cached && !empty($cached['refresh_token'])) {
-                $ref = $this->refreshAccessToken();
-                if ($ref['success']) {
-                    return $ref;
-                }
-                // If refresh fails, fall back to password grant below
-            }
-
-            $config = $this->getPathaoConfig();
-
-            $response = Http::timeout(10)->retry(2, 200)->post($config['aladdin_url'].'/issue-token', [
-                'client_id' => $config['client_id'],
-                'client_secret' => $config['client_secret'],
-                'username' => $config['pathao_username'],
-                'password' => $config['pathao_password'],
-                'grant_type' => 'password'
-            ]);
-
-            $result = $response->json();
-
-            if (!isset($result['access_token'])) {
-                Log::error('Pathao access token fetch failed', [
-                    'status' => $response->status(),
-                    'body' => $result,
-                ]);
-                return [
-                    'success' => false,
-                    'message' => $result['message'] ?? 'Could not get access token'
-                ];
-            }
-
-            $this->cacheToken($result);
-
+//        try {
+        // Try cache first
+        $cached = $this->loadTokenFromCache();
+        if ($cached && !$this->isTokenExpiringSoon($cached)) {
             return [
                 'success' => true,
-                'access_token' => $result['access_token']
-            ];
-
-        } catch (Throwable $e) {
-            Log::error('Pathao token error', ['error' => $e->getMessage()]);
-            return [
-                'success' => false,
-                'message' => $e->getMessage()
+                'access_token' => $cached['access_token'],
             ];
         }
+
+        // If we have a cached refresh_token, try refresh first
+        if ($cached && !empty($cached['refresh_token'])) {
+            $ref = $this->refreshAccessToken();
+            if ($ref['success']) {
+                return $ref;
+            }
+            // If refresh fails, fall back to password grant below
+        }
+
+        $config = $this->getPathaoConfig();
+
+        $response = Http::timeout(10)->retry(2, 200)->post($config['aladdin_url'].'/issue-token', [
+            'client_id' => $config['client_id'],
+            'client_secret' => $config['client_secret'],
+            'username' => $config['pathao_username'],
+            'password' => $config['pathao_password'],
+            'grant_type' => 'password'
+        ]);
+
+        $result = $response->json();
+
+        if (!isset($result['access_token'])) {
+            Log::error('Pathao access token fetch failed', [
+                'status' => $response->status(),
+                'body' => $result,
+            ]);
+            return [
+                'success' => false,
+                'message' => $result['message'] ?? 'Could not get access token'
+            ];
+        }
+
+        $this->cacheToken($result);
+
+        return [
+            'success' => true,
+            'access_token' => $result['access_token']
+        ];
+
+//        } catch (Throwable $e) {
+//            Log::error('Pathao token error', ['error' => $e->getMessage()]);
+//            return [
+//                'success' => false,
+//                'message' => $e->getMessage()
+//            ];
+//        }
     }
 
     // Refresh token using refresh_token grant
@@ -309,4 +314,67 @@ class PathaoCourierService
         $expiresAt = (int) ($token['expires_at'] ?? 0);
         return $expiresAt === 0 || ($expiresAt - now()->timestamp) <= self::TOKEN_REFRESH_BUFFER;
     }
+
+    public function getCities()
+    {
+        try {
+            $config = $this->getPathaoConfig();
+            $tokenResponse = $this->getAccessToken();
+
+            if (!$tokenResponse['success']) {
+                return [
+                    'success' => false,
+                    'message' => $tokenResponse['message'] ?? 'Failed to get access token',
+                    'data' => []
+                ];
+            }
+
+            $client = $this->httpClientWithAuth($tokenResponse['access_token']);
+            $url = rtrim($config['aladdin_url'], '/').'/city-list';
+            $response = $client->get($url);
+            $result = $response->json();
+
+            if ($result['type'] == "success" && $result['code'] == "200") {
+                return [
+                    'success' => true,
+                    'message' => 'Cities fetched successfully',
+                    'data' => $result['data']['data']
+                ];
+            }
+
+            Log::warning('Failed to fetch Pathao cities', [
+                'status' => $response->status(),
+                'body' => $result
+            ]);
+
+            return [
+                'success' => false,
+                'message' => $result['message'] ?? 'Failed to get cities',
+                'data' => []
+            ];
+
+        } catch (Throwable $e) {
+            Log::error('Error fetching Pathao cities', [
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Failed to get cities',
+                'data' => []
+            ];
+        }
+    }
+
+    public function createOrUpdatedCity()
+    {
+        $cities = $this->getCities();
+        foreach ($cities['data'] as $city) {
+            PathaoCity::updateOrCreate(['cityId'], [
+                'name' => $city['city_name'],
+                'cityId' => $city['city_id'],
+            ]);
+        }
+    }
+
 }

@@ -13,7 +13,6 @@ use Database\Seeders\Models\EmailTemplateSeeder;
 use Database\Seeders\Models\FlashDealProductSeeder;
 use Database\Seeders\Models\FlashDealTranslationSeeder;
 use Database\Seeders\Models\LanguageSeeder;
-use Database\Seeders\Models\NotificationTypeSeeder;
 use Database\Seeders\Models\PageSeeder;
 use Database\Seeders\Models\PaymentMethodSeeder;
 use Database\Seeders\Models\PermissionSeeder;
@@ -42,7 +41,6 @@ class DatabaseSeeder extends Seeder
 
     public function run()
     {
-
         $this->call([
             CategorySeeder::class,
             ColorSeeder::class,
@@ -67,7 +65,7 @@ class DatabaseSeeder extends Seeder
             ShopSeeder::class,
             TaxSeeder::class,
             UploadSeeder::class,
-            NotificationTypeSeeder::class,
+//            NotificationTypeSeeder::class,
             UserSeeder::class,
         ]);
     }
