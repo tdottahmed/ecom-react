@@ -41,7 +41,6 @@
         "psr/log": "^2.0",
         "razorpay/razorpay": "2.*",
         "rmccue/requests": "^2.0",
-        "sebacarrasco93/laravel-payku": "^1.0",
         "shahariar-ahmad/courier-fraud-checker-bd": "^2.0",
         "simplesoftwareio/simple-qrcode": "^4.2",
         "spatie/db-dumper": "^3.3",
