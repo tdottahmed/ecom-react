@@ -369,11 +369,16 @@ class PathaoCourierService
     public function createOrUpdatedCity()
     {
         $cities = $this->getCities();
-        foreach ($cities['data'] as $city) {
-            PathaoCity::updateOrCreate(['cityId'], [
-                'name' => $city['city_name'],
-                'cityId' => $city['city_id'],
-            ]);
+        try {
+            foreach ($cities['data'] as $city) {
+                PathaoCity::updateOrCreate(['cityId' => $city['city_id']], [
+                    'name' => $city['city_name'],
+                    'cityId' => $city['city_id'],
+                ]);
+            }
+            return true;
+        } catch (\Exception $e) {
+            dd($e->getMessage());
         }
     }
 
