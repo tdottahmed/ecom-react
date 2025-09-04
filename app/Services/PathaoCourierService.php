@@ -28,7 +28,7 @@ class PathaoCourierService
 
     public function handle(): array
     {
-        dd($this->createOrUpdatedCity());
+//        dd($this->createOrUpdatedCity());
 //        try {
         // Get access token first
         $token = $this->getAccessToken();
@@ -36,20 +36,45 @@ class PathaoCourierService
             return $token;
         }
         $this->access_token = $token['access_token'];
-        $cities = $this->getCities();
 
+        // Resolve Pathao location IDs from your master data
+        $resolver = new PathaoLocationService($this);
+        dd($resolver);
+
+        // Prefer explicitly passed Address model if provided; otherwise try to find one from the user
+        $addressModel = $this->shipping_address instanceof \App\Models\Address ? $this->shipping_address : null;
+        if (!$addressModel && $this->order->user) {
+            $decoded = is_string($this->order->shipping_address)
+                ? json_decode($this->order->shipping_address)
+                : $this->order->shipping_address;
+
+            $addressId = is_object($decoded) ? ($decoded->address_id ?? null) : null;
+            if ($addressId) {
+                $addressModel = $this->order->user->addresses()->whereKey($addressId)->first();
+            }
+        }
+//        dd($addressModel);
+
+        if (!$addressModel) {
+            return ['success' => false, 'message' => 'Shipping address model not found'];
+        }
+
+        $loc = $resolver->resolveForAddress($addressModel);
+        if (!$loc['success']) {
+            return ['success' => false, 'message' => $loc['message']];
+        }
 
         $cod_amount = $this->order->orderDetails->sum('price') + $this->order->orderDetails()->sum('shipping_cost');
-//        $city_id = City::where('name', $this->shipping_address->city)->first()->id;
+
         $orderData = [
             'store_id' => config('services.pathao-courier.store_id'),
             'merchant_order_id' => $this->order->code,
             'recipient_name' => $this->shipping_address->name,
             'recipient_phone' => $this->shipping_address->phone,
             'recipient_address' => $this->formatAddress(),
-            'recipient_city' => $this->shipping_address->city_id,
-            'recipient_zone' => $this->shipping_address->zone_id,
-            'recipient_area' => $this->shipping_address->area_id,
+            'recipient_city' => $loc['recipient_city'],
+            'recipient_zone' => $loc['recipient_zone'],
+            'recipient_area' => $loc['recipient_area'],
             'delivery_type' => 48,
             'item_type' => 2,
             'special_instruction' => $this->order->additional_info,
@@ -57,7 +82,8 @@ class PathaoCourierService
             'item_weight' => 0.5,
             'amount_to_collect' => $cod_amount
         ];
-
+//        dd($orderData);
+//        try {
         // Build URL and client
         $config = $this->getPathaoConfig();
         $url = rtrim($config['base_url'], '/').'/orders';
@@ -66,7 +92,7 @@ class PathaoCourierService
 
         // First attempt
         $response = $client->post($url, $orderData);
-        dd($response);
+//        dd($response);
 
         // If unauthorized, try to refresh token once and retry
         if ($response->status() === 401) {
@@ -115,6 +141,25 @@ class PathaoCourierService
 //                'error' => $e->getMessage()
 //            ];
 //        }
+    }
+
+    // Make these two methods public so the location service can reuse them
+    public function getPathaoConfig()
+    {
+        static $config = null;
+
+        if ($config === null) {
+            $config = [
+                'client_id' => config('services.pathao-courier.client_id'),
+                'client_secret' => config('services.pathao-courier.client_secret'),
+                'pathao_username' => config('services.pathao-courier.pathao_username'),
+                'pathao_password' => config('services.pathao-courier.pathao_password'),
+                'base_url' => config('services.pathao-courier.base_url'),
+                'aladdin_url' => config('services.pathao-courier.aladdin_url'),
+            ];
+        }
+
+        return $config;
     }
 
     protected function getAccessToken()
@@ -257,29 +302,12 @@ class PathaoCourierService
         ]));
     }
 
-    protected function getPathaoConfig()
-    {
-        static $config = null;
-
-        if ($config === null) {
-            $config = [
-                'client_id' => config('services.pathao-courier.client_id'),
-                'client_secret' => config('services.pathao-courier.client_secret'),
-                'pathao_username' => config('services.pathao-courier.pathao_username'),
-                'pathao_password' => config('services.pathao-courier.pathao_password'),
-                'base_url' => config('services.pathao-courier.base_url'),
-                'aladdin_url' => config('services.pathao-courier.aladdin_url'),
-            ];
-        }
-
-        return $config;
-    }
-
     // Build a preconfigured HTTP client with auth headers and sane defaults
-    protected function httpClientWithAuth(string $accessToken)
+    public function httpClientWithAuth(string $accessToken)
     {
         return Http::timeout(15)
             ->retry(2, 300, throw: false)
+            ->asJson()
             ->withHeaders([
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
@@ -334,11 +362,11 @@ class PathaoCourierService
             $response = $client->get($url);
             $result = $response->json();
 
-            if ($result['type'] == "success" && $result['code'] == "200") {
+            if (($result['type'] ?? null) == "success" && ($result['code'] ?? null) == "200") {
                 return [
                     'success' => true,
                     'message' => 'Cities fetched successfully',
-                    'data' => $result['data']['data']
+                    'data' => $result['data']['data'] ?? []
                 ];
             }
 
@@ -370,6 +398,10 @@ class PathaoCourierService
     {
         $cities = $this->getCities();
         try {
+            if (!($cities['success'] ?? false)) {
+                Log::warning('Pathao cities sync skipped', ['message' => $cities['message'] ?? null]);
+                return false;
+            }
             foreach ($cities['data'] as $city) {
                 PathaoCity::updateOrCreate(['cityId' => $city['city_id']], [
                     'name' => $city['city_name'],
@@ -378,8 +410,8 @@ class PathaoCourierService
             }
             return true;
         } catch (\Exception $e) {
-            dd($e->getMessage());
+            Log::error('Pathao cities sync error', ['error' => $e->getMessage()]);
+            return false;
         }
     }
-
 }

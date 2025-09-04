@@ -1,9 +1,9 @@
-<?php 
+<?php
 
 return [
     'pathao' => [
         'user' => env('PATHAO_USER'),
-        'password' => env('PATHAO_PASSWORD'),
+        'password' => env('PASSWORD'),
     ],
 
     'redx' => [
