@@ -121,6 +121,7 @@
                         <th data-breakpoints="md">{{ translate('Delivery Status') }}</th>
                         <th data-breakpoints="md">{{ translate('Payment method') }}</th>
                         <th data-breakpoints="md">{{ translate('Payment Status') }}</th>
+                        <th data-breakpoints="md">{{ translate('User Delivery History') }}</th>
                         @if (addon_is_activated('refund_request'))
                             <th>{{ translate('Refund') }}</th>
                         @endif
@@ -204,6 +205,20 @@
                                     @endif
                                 </td>
                             @endif
+                            <td>
+                                @if($order->fraudCheckHistory)
+                                    <span>
+                                        Checked: {{ $order->fraudCheckHistory->total_orders }} orders
+                                        ({{ $order->fraudCheckHistory->success_rate }}% success)
+                                    </span>
+                                @else
+                                    <a href="{{ route('order.checkFraud', $order->id) }}"
+                                       class="btn btn-soft-info btn-sm">
+                                        Check Histories
+                                        <i class="las la-universal-access"></i>
+                                    </a>
+                                @endif
+                            </td>
                             <td class="text-right">
                                 @if (addon_is_activated('pos_system') && $order->order_from == 'pos')
                                     <a class="btn btn-soft-success btn-icon btn-circle btn-sm"

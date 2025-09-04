@@ -8,6 +8,7 @@ use App\Models\Cart;
 use App\Models\CombinedOrder;
 use App\Models\Coupon;
 use App\Models\CouponUsage;
+use App\Models\FraudCheckHistory;
 use App\Models\Order;
 use App\Models\OrderDetail;
 use App\Models\OrdersExport;
@@ -26,6 +27,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Route;
 use Maatwebsite\Excel\Facades\Excel;
 use Mail;
+use ShahariarAhmad\CourierFraudCheckerBd\Facade\CourierFraudCheckerBd;
 
 class OrderController extends Controller
 {
@@ -115,7 +117,6 @@ class OrderController extends Controller
     public function show($id)
     {
         $order = Order::findOrFail(decrypt($id));
-
         $order_shipping_address = json_decode($order->shipping_address);
         $delivery_boys = User::where('city', $order_shipping_address->city)
             ->where('user_type', 'delivery_boy')
@@ -643,6 +644,8 @@ class OrderController extends Controller
 
     public function orderCourier(Request $request)
     {
+//        $result = CourierFraudCheckerBd::check('01876525073');
+//        dd($result);
         $order = Order::findOrFail($request->order_id);
         $shippingDetails = json_decode($order->shipping_address);
 
@@ -666,5 +669,60 @@ class OrderController extends Controller
 //            flash(translate('Something went wrong'))->error();
 //            return back();
 //        }
+    }
+
+    public function checkFraud($order_id)
+    {
+        $order = Order::findOrFail($order_id);
+
+        $shippingAddress = json_decode($order->shipping_address ?? '{}');
+        $customerPhone = $shippingAddress->phone ?? null;
+        if (!$customerPhone) {
+            return back()->withErrors(['phone' => 'Customer phone not found in shipping address.']);
+        }
+
+        $customerPhone = ltrim(str_replace('+88', '', (string) $customerPhone));
+        $customerPhone = preg_replace('/\s+/', '', $customerPhone);
+
+        $result = CourierFraudCheckerBd::check($customerPhone);
+
+        $steadfast = $result['steadfast'] ?? ['success' => 0, 'cancel' => 0, 'total' => 0];
+        $pathao = $result['pathao'] ?? ['success' => 0, 'cancel' => 0, 'total' => 0];
+        $redx = $result['redx'] ?? ['success' => 0, 'cancel' => 0, 'total' => 0]; // maps to redex_* columns
+
+        $data = [
+            'order_id' => $order->id,
+            'user_id' => $order->user_id ?? 0,
+
+            // Pathao
+            'pathao_total_orders' => (int) ($pathao['total'] ?? 0),
+            'pathao_success_order' => (int) ($pathao['success'] ?? 0),
+            'pathao_cancelled_order' => (int) ($pathao['cancel'] ?? 0),
+
+            // Steadfast
+            'steadfast_total_orders' => (int) ($steadfast['total'] ?? 0),
+            'steadfast_success_order' => (int) ($steadfast['success'] ?? 0),
+            'steadfast_cancelled_order' => (int) ($steadfast['cancel'] ?? 0),
+
+            // Redex
+            'redex_total_orders' => (int) ($redx['total'] ?? 0),
+            'redex_success_order' => (int) ($redx['success'] ?? 0),
+            'redex_cancelled_order' => (int) ($redx['cancel'] ?? 0),
+        ];
+
+        // Totals and success rate
+        $data['total_orders'] = $data['pathao_total_orders'] + $data['steadfast_total_orders'] + $data['redex_total_orders'];
+        $data['success_orders'] = $data['pathao_success_order'] + $data['steadfast_success_order'] + $data['redex_success_order'];
+        $data['cancelled_orders'] = $data['pathao_cancelled_order'] + $data['steadfast_cancelled_order'] + $data['redex_cancelled_order'];
+        $data['success_rate'] = $data['total_orders'] > 0
+            ? (int) round(($data['success_orders'] / $data['total_orders']) * 100)
+            : 0;
+
+        FraudCheckHistory::updateOrCreate(
+            ['order_id' => $order->id],
+            $data
+        );
+
+        return back()->with('status', 'Fraud check saved successfully.');
     }
 }

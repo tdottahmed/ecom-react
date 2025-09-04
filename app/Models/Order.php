@@ -65,4 +65,9 @@ class Order extends Model
     {
         return $this->hasOne(CommissionHistory::class);
     }
+
+    public function fraudCheckHistory()
+    {
+        return $this->hasOne(FraudCheckHistory::class);
+    }
 }

@@ -423,6 +423,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         Route::get('/seller_orders', 'all_orders')->name('seller_orders.index');
         Route::get('/orders_by_pickup_point', 'all_orders')->name('pick_up_point.index');
         Route::get('/courier_orders', 'all_orders')->name('courier_orders.index');
+        Route::get('/check-fraud/{order_id}', 'checkFraud')->name('order.checkFraud');
         Route::post('/order/courier_order', 'orderCourier')->name('order.courier');
         Route::get('/unpaid_orders', 'all_orders')->name('unpaid_orders.index');
 
