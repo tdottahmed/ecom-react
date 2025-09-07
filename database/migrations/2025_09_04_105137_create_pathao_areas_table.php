@@ -12,8 +12,11 @@ return new class extends Migration {
     {
         Schema::create('pathao_areas', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('zone_id'); // references pathao_zones.id (Pathao zone id)
-            $table->string('name');
+            $table->unsignedBigInteger('zone_id');
+            $table->unsignedBigInteger('area_id')->index();
+            $table->string('area_name');
+            $table->boolean('home_delivery_available')->default(false);
+            $table->boolean('pickup_available')->default(false);
             $table->timestamps();
 
             $table->index(['zone_id']);

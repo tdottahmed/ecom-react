@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -13,10 +12,10 @@ return new class extends Migration
     {
         Schema::create('zones', function (Blueprint $table) {
             $table->integer('id', true);
+            $table->unsignedBigInteger('city_id');
+            $table->unsignedInteger('zone_id');
             $table->string('name', 255);
-            $table->boolean('status')->comment('0 = Inactive, 1 = Active');
-            $table->timestamp('created_at')->useCurrent();
-            $table->timestamp('updated_at')->useCurrent();
+            $table->timestamps();
         });
     }
 

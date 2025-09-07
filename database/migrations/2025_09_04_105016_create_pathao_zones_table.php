@@ -11,12 +11,11 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('pathao_zones', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('city_id'); // references pathao_cities.id (Pathao city id)
-            $table->string('name');
+            $table->integer('id', true);
+            $table->unsignedBigInteger('city_id');
+            $table->unsignedInteger('zone_id');
+            $table->string('name', 255);
             $table->timestamps();
-
-            $table->index(['city_id']);
         });
     }
 

@@ -6,6 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class PathaoArea extends Model
 {
-    protected $fillable = ['id', 'zone_id', 'name'];
+    protected $fillable = ['id', 'area_id', 'zone_id', 'area_name', 'home_delivery_available', 'pickup_available'];
     public $incrementing = true;
 }

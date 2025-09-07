@@ -7,98 +7,137 @@ use App\Models\PathaoArea;
 use App\Models\PathaoCity;
 use App\Models\PathaoLocationMap;
 use App\Models\PathaoZone;
+use App\Traits\PathaoApiTrait;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class PathaoLocationService
 {
-    public function __construct(private readonly PathaoCourierService $courier)
-    {
-    }
+    use PathaoApiTrait;
 
-    // Pulls reference data from Pathao (cities, zones, areas) and stores them
+    /**
+     * Pulls reference data from Pathao (cities, zones, areas) and stores them
+     */
     public function syncReferenceData(): array
     {
         try {
-            $config = $this->courier->getPathaoConfig();
-            $token = $this->courier->getAccessToken();
+            $config = $this->getPathaoConfig();
+            $token = $this->getAccessToken();
+
             if (!$token['success']) {
                 return ['success' => false, 'message' => $token['message'] ?? 'Token error'];
             }
 
-            $client = $this->courier->httpClientWithAuth($token['access_token']);
+            $client = $this->httpClientWithAuth($token['access_token']);
 
-            // Cities
+            // 🔹 Cities
             $citiesResp = $client->get(rtrim($config['aladdin_url'], '/').'/city-list')->json();
             if (($citiesResp['type'] ?? null) !== 'success') {
                 return ['success' => false, 'message' => 'City list fetch failed'];
             }
+
             $cities = $citiesResp['data']['data'] ?? [];
             foreach ($cities as $c) {
-                PathaoCity::updateOrCreate(['cityId' => $c['city_id']], [
-                    'name' => $c['city_name'],
-                    'cityId' => $c['city_id'],
-                ]);
+                PathaoCity::updateOrCreate(
+                    ['cityId' => $c['city_id']],
+                    ['name' => $c['city_name']]
+                );
             }
 
-            // Zones by city
+            // 🔹 Zones & Areas by city
             foreach ($cities as $c) {
-                $zonesResp = $client->get(rtrim($config['aladdin_url'], '/').'/zone-list', [
-                    'city_id' => $c['city_id'],
-                ]);
+                $zonesUrl = rtrim($config['aladdin_url'], '/').'/cities/'.$c['city_id'].'/zone-list';
+                $zonesResp = $client->get($zonesUrl);
+
                 if ($zonesResp->failed()) {
-                    Log::warning('Pathao zones fetch failed', ['city_id' => $c['city_id']]);
+                    Log::warning('Pathao zones fetch failed', [
+                        'city_id' => $c['city_id'],
+                        'status' => $zonesResp->status(),
+                        'body' => $zonesResp->json(),
+                    ]);
                     continue;
                 }
-                $zones = $zonesResp->json()['data']['data'] ?? [];
-                foreach ($zones as $z) {
-                    PathaoZone::updateOrCreate(['id' => $z['zone_id']], [
-                        'city_id' => $c['city_id'],
-                        'name' => $z['zone_name'],
-                    ]);
 
-                    // Areas by zone
-                    $areasResp = $client->get(rtrim($config['aladdin_url'], '/').'/area-list', [
-                        'zone_id' => $z['zone_id'],
+                $zonesBody = $zonesResp->json();
+                if (($zonesBody['type'] ?? null) !== 'success') {
+                    Log::warning('Pathao zones response invalid', [
+                        'city_id' => $c['city_id'],
+                        'body' => $zonesBody,
                     ]);
+                    continue;
+                }
+
+                $zones = $zonesBody['data']['data'] ?? [];
+                foreach ($zones as $z) {
+                    PathaoZone::updateOrCreate(
+                        ['zone_id' => $z['zone_id']],
+                        [
+                            'city_id' => $c['city_id'],
+                            'name' => $z['zone_name'],
+                        ]
+                    );
+
+                    // 🔹 Areas by zone
+                    $areasUrl = rtrim($config['aladdin_url'], '/').'/zones/'.$z['zone_id'].'/area-list';
+                    $areasResp = $client->get($areasUrl);
+
                     if ($areasResp->failed()) {
-                        Log::warning('Pathao areas fetch failed', ['zone_id' => $z['zone_id']]);
+                        Log::warning('Pathao areas fetch failed', [
+                            'zone_id' => $z['zone_id'],
+                            'status' => $areasResp->status(),
+                            'body' => $areasResp->json(),
+                        ]);
                         continue;
                     }
-                    $areas = $areasResp->json()['data']['data'] ?? [];
-                    foreach ($areas as $a) {
-                        PathaoArea::updateOrCreate(['id' => $a['area_id']], [
+
+                    $areasBody = $areasResp->json();
+                    if (($areasBody['type'] ?? null) !== 'success') {
+                        Log::warning('Pathao areas response invalid', [
                             'zone_id' => $z['zone_id'],
-                            'name' => $a['area_name'],
+                            'body' => $areasBody,
                         ]);
+                        continue;
+                    }
+
+                    $areas = $areasBody['data']['data'] ?? [];
+                    foreach ($areas as $a) {
+                        PathaoArea::updateOrCreate(
+                            ['area_id' => $a['area_id']],
+                            [
+                                'zone_id' => $z['zone_id'],
+                                'area_name' => $a['area_name'],
+                                'area_id' => (int) $a['area_id'],
+                                'home_delivery_available' => $a['home_delivery_available'] ?? false,
+                                'pickup_available' => $a['pickup_available'] ?? false,
+                            ]
+                        );
                     }
                 }
             }
 
-            return ['success' => true, 'message' => 'Reference data synced'];
+            return ['success' => true, 'message' => 'Reference data synced successfully'];
+
         } catch (Throwable $e) {
-            Log::error('Pathao reference sync error', ['error' => $e->getMessage()]);
-            return ['success' => false, 'message' => 'Sync failed'];
+            Log::error('Pathao reference sync error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return ['success' => false, 'message' => 'Sync failed: '.$e->getMessage()];
         }
     }
 
-    // Resolve Pathao IDs from your master data (state_id, city_id, area text)
+    /**
+     * Resolve Pathao IDs from your master data (state_id, city_id, area text)
+     */
     public function resolveForAddress(Address $address): array
     {
-        // Try explicit mapping by (state_id, city_id, area_text)
         $areaText = $this->extractAreaText($address);
+
         $map = PathaoLocationMap::where('state_id', $address->state_id)
             ->where('city_id', $address->city_id)
-            ->where(function ($q) use ($areaText) {
-                if ($areaText) {
-                    $q->where('area_text', $areaText);
-                } else {
-                    $q->whereNull('area_text');
-                }
-            })
+            ->when($areaText, fn($q) => $q->where('area_text', $areaText), fn($q) => $q->whereNull('area_text'))
             ->first();
 
-        // Fallback to default mapping for that city if area-level mapping is missing
         if (!$map) {
             $map = PathaoLocationMap::where('state_id', $address->state_id)
                 ->where('city_id', $address->city_id)
@@ -121,15 +160,18 @@ class PathaoLocationService
         ];
     }
 
-    // Pulls a small locality/area text from the address line for mapping (customize as needed)
+    /**
+     * Extract small locality/area text from the address line for mapping
+     */
     protected function extractAreaText(Address $address): ?string
     {
-        // Example: use the last comma-separated part of address as area
         if (!$address->address) {
             return null;
         }
+
         $parts = array_map('trim', explode(',', $address->address));
         $candidate = end($parts) ?: null;
+
         return $candidate ?: null;
     }
 }
