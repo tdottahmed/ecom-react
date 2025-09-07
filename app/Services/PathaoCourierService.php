@@ -27,6 +27,7 @@ class PathaoCourierService
         if (!$token['success']) {
             return $token;
         }
+        dd($this->shipping_address);
         $this->access_token = $token['access_token'];
         $addressModel = $this->shipping_address instanceof \App\Models\Address
             ? $this->shipping_address
