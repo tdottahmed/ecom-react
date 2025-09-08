@@ -2,13 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\Address;
 use App\Models\PathaoArea;
 use App\Models\PathaoCity;
-use App\Models\PathaoLocationMap;
 use App\Models\PathaoZone;
 use App\Traits\PathaoApiTrait;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Throwable;
 
 class PathaoLocationService
@@ -126,52 +125,72 @@ class PathaoLocationService
         }
     }
 
-    /**
-     * Resolve Pathao IDs from your master data (state_id, city_id, area text)
-     */
-    public function resolveForAddress(Address $address): array
+    public function resolveFromAddress(object $address): array
     {
-        $areaText = $this->extractAreaText($address);
+        $state = Str::lower(trim($address->state));
+        $city = Str::lower(trim($address->city));
 
-        $map = PathaoLocationMap::where('state_id', $address->state_id)
-            ->where('city_id', $address->city_id)
-            ->when($areaText, fn($q) => $q->where('area_text', $areaText), fn($q) => $q->whereNull('area_text'))
+        // Try to find the city first
+        $pathaoCity = PathaoCity::whereRaw('LOWER(name) = ?', [$city])
+            ->orWhereRaw('LOWER(name) = ?', [$state])
             ->first();
 
-        if (!$map) {
-            $map = PathaoLocationMap::where('state_id', $address->state_id)
-                ->where('city_id', $address->city_id)
-                ->where('is_default', true)
+        if (!$pathaoCity) {
+            return [
+                'success' => false,
+                'message' => "No Pathao city found for: {$address->city}, {$address->state}"
+            ];
+        }
+
+        // Try to find zone (often the city name in shipping address maps to a zone in Pathao)
+        $pathaoZone = PathaoZone::where('city_id', $pathaoCity->cityId)
+            ->where('name', 'like', '%'.$city.'%')
+            ->whereRaw('LOWER(name) LIKE ?', ['%'.$city.'%'])
+            ->first();
+        // If no zone found, try to get a default zone for the city
+        if (!$pathaoZone) {
+            $pathaoZone = PathaoZone::where('city_id', $pathaoCity->id)
+                ->orderBy('name')
                 ->first();
         }
 
-        if (!$map) {
+        if (!$pathaoZone) {
             return [
                 'success' => false,
-                'message' => 'No Pathao mapping found for this address. Please configure mapping.',
+                'message' => "No Pathao zone found for city: {$pathaoCity->name}"
             ];
+        }
+
+        // Try to find area based on address details
+        $area = $this->extractAreaFromAddress($address->address);
+        $pathaoArea = null;
+        if ($area) {
+            $pathaoArea = PathaoArea::where('zone_id', 156)
+                ->whereRaw('LOWER(area_name) LIKE ?', ['%'.Str::lower($area).'%'])
+                ->first();
+            dd($pathaoArea);
         }
 
         return [
             'success' => true,
-            'recipient_city' => (int) $map->pathao_city_id,
-            'recipient_zone' => (int) $map->pathao_zone_id,
-            'recipient_area' => $map->pathao_area_id ? (int) $map->pathao_area_id : null,
+            'recipient_city' => (int) $pathaoCity->cityId,
+            'recipient_zone' => (int) $pathaoZone->zone_id,
+            'city_name' => $pathaoCity->name,
+            'zone_name' => $pathaoZone->name,
         ];
     }
 
-    /**
-     * Extract small locality/area text from the address line for mapping
-     */
-    protected function extractAreaText(Address $address): ?string
+    protected function extractAreaFromAddress(string $address): ?string
     {
-        if (!$address->address) {
-            return null;
+        $parts = array_map('trim', explode(',', $address));
+        $areaKeywords = ['sector', 'block', 'area', 'ward', 'no.', 'road', 'rd'];
+        foreach ($parts as $part) {
+            foreach ($areaKeywords as $keyword) {
+                if (stripos(strtolower($part), strtolower($keyword)) !== false) {
+                    return $part;
+                }
+            }
         }
-
-        $parts = array_map('trim', explode(',', $address->address));
-        $candidate = end($parts) ?: null;
-
-        return $candidate ?: null;
+        return end($parts) ?: null;
     }
 }
