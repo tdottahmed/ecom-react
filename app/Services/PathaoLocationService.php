@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\PathaoArea;
 use App\Models\PathaoCity;
 use App\Models\PathaoZone;
 use App\Traits\PathaoApiTrait;
@@ -15,7 +14,7 @@ class PathaoLocationService
     use PathaoApiTrait;
 
     /**
-     * Pulls reference data from Pathao (cities, zones, areas) and stores them
+     * Pulls reference data from Pathao (cities, zones only)
      */
     public function syncReferenceData(): array
     {
@@ -43,7 +42,7 @@ class PathaoLocationService
                 );
             }
 
-            // 🔹 Zones & Areas by city
+            // 🔹 Zones (no areas in DB)
             foreach ($cities as $c) {
                 $zonesUrl = rtrim($config['aladdin_url'], '/').'/cities/'.$c['city_id'].'/zone-list';
                 $zonesResp = $client->get($zonesUrl);
@@ -75,42 +74,6 @@ class PathaoLocationService
                             'name' => $z['zone_name'],
                         ]
                     );
-
-                    // 🔹 Areas by zone
-                    $areasUrl = rtrim($config['aladdin_url'], '/').'/zones/'.$z['zone_id'].'/area-list';
-                    $areasResp = $client->get($areasUrl);
-
-                    if ($areasResp->failed()) {
-                        Log::warning('Pathao areas fetch failed', [
-                            'zone_id' => $z['zone_id'],
-                            'status' => $areasResp->status(),
-                            'body' => $areasResp->json(),
-                        ]);
-                        continue;
-                    }
-
-                    $areasBody = $areasResp->json();
-                    if (($areasBody['type'] ?? null) !== 'success') {
-                        Log::warning('Pathao areas response invalid', [
-                            'zone_id' => $z['zone_id'],
-                            'body' => $areasBody,
-                        ]);
-                        continue;
-                    }
-
-                    $areas = $areasBody['data']['data'] ?? [];
-                    foreach ($areas as $a) {
-                        PathaoArea::updateOrCreate(
-                            ['area_id' => $a['area_id']],
-                            [
-                                'zone_id' => $z['zone_id'],
-                                'area_name' => $a['area_name'],
-                                'area_id' => (int) $a['area_id'],
-                                'home_delivery_available' => $a['home_delivery_available'] ?? false,
-                                'pickup_available' => $a['pickup_available'] ?? false,
-                            ]
-                        );
-                    }
                 }
             }
 
@@ -129,6 +92,7 @@ class PathaoLocationService
     {
         $state = Str::lower(trim($address->state));
         $city = Str::lower(trim($address->city));
+        $fullAddress = $this->normalizeAddress($address->address);
 
         // Try to find the city first
         $pathaoCity = PathaoCity::whereRaw('LOWER(name) = ?', [$city])
@@ -142,14 +106,16 @@ class PathaoLocationService
             ];
         }
 
-        // Try to find zone (often the city name in shipping address maps to a zone in Pathao)
+        // Try to find zone
         $pathaoZone = PathaoZone::where('city_id', $pathaoCity->cityId)
-            ->where('name', 'like', '%'.$city.'%')
-            ->whereRaw('LOWER(name) LIKE ?', ['%'.$city.'%'])
+            ->where(function ($query) use ($city) {
+                $query->whereRaw('LOWER(name) LIKE ?', ['%'.$city.'%'])
+                    ->orWhereRaw('? LIKE CONCAT("%", LOWER(name), "%")', [$city]);
+            })
             ->first();
-        // If no zone found, try to get a default zone for the city
+
         if (!$pathaoZone) {
-            $pathaoZone = PathaoZone::where('city_id', $pathaoCity->id)
+            $pathaoZone = PathaoZone::where('city_id', $pathaoCity->cityId)
                 ->orderBy('name')
                 ->first();
         }
@@ -161,36 +127,98 @@ class PathaoLocationService
             ];
         }
 
-        // Try to find area based on address details
-        $area = $this->extractAreaFromAddress($address->address);
-        $pathaoArea = null;
-        if ($area) {
-            $pathaoArea = PathaoArea::where('zone_id', 156)
-                ->whereRaw('LOWER(area_name) LIKE ?', ['%'.Str::lower($area).'%'])
-                ->first();
-            dd($pathaoArea);
-        }
+        // Fetch areas directly from API
+        $areas = $this->getPathaoArea($pathaoZone->zone_id);
+        $bestMatch = $this->findBestMatchingArea($areas, $fullAddress);
 
-        return [
+        $response = [
             'success' => true,
-            'recipient_city' => (int) $pathaoCity->cityId,
-            'recipient_zone' => (int) $pathaoZone->zone_id,
+            'recipient_city_id' => (int) $pathaoCity->cityId,
+            'recipient_zone_id' => (int) $pathaoZone->zone_id,
             'city_name' => $pathaoCity->name,
             'zone_name' => $pathaoZone->name,
         ];
+
+        if ($bestMatch) {
+            $response['recipient_area_id'] = $bestMatch['area_id'];
+            $response['area_name'] = $bestMatch['area_name'];
+        }
+
+        return $response;
     }
 
-    protected function extractAreaFromAddress(string $address): ?string
+    protected function normalizeAddress(string $address): string
     {
-        $parts = array_map('trim', explode(',', $address));
-        $areaKeywords = ['sector', 'block', 'area', 'ward', 'no.', 'road', 'rd'];
-        foreach ($parts as $part) {
-            foreach ($areaKeywords as $keyword) {
-                if (stripos(strtolower($part), strtolower($keyword)) !== false) {
-                    return $part;
+        $address = preg_replace('/\s+/', ' ', trim($address));
+        $address = str_replace(['#', '-', '_', '.'], ' ', $address);
+        return Str::lower($address);
+    }
+
+    protected function findBestMatchingArea(array $areas, string $address): ?array
+    {
+        $bestScore = 0;
+        $bestArea = null;
+
+        foreach ($areas as $area) {
+            $score = 0;
+            $areaName = Str::lower($area['area_name']);
+
+            // Exact match
+            if (str_contains($address, $areaName)) {
+                $score += 100;
+            }
+
+            // Partial word matches
+            $addressWords = explode(' ', $address);
+            $areaWords = explode(' ', $areaName);
+
+            foreach ($addressWords as $word) {
+                if (strlen($word) < 3) {
+                    continue;
+                }
+                foreach ($areaWords as $areaWord) {
+                    if (strlen($areaWord) < 3) {
+                        continue;
+                    }
+
+                    $distance = levenshtein($word, $areaWord);
+                    if ($distance <= 2) {
+                        $score += (3 - $distance) * 10;
+                    }
                 }
             }
+
+            // Common location keywords
+            $keywords = ['sector', 'block', 'road', 'area', 'ward'];
+            foreach ($keywords as $keyword) {
+                if (str_contains($address, $keyword) && str_contains($areaName, $keyword)) {
+                    $score += 20;
+                }
+            }
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestArea = $area; // return raw API array
+            }
         }
-        return end($parts) ?: null;
+
+        return $bestScore >= 30 ? $bestArea : null;
+    }
+
+    public function getPathaoArea(int $zoneId = null): array
+    {
+        $config = $this->getPathaoConfig();
+        $token = $this->getAccessToken();
+
+        if (!$token['success']) {
+            return [];
+        }
+
+        $client = $this->httpClientWithAuth($token['access_token']);
+        $areasUrl = rtrim($config['aladdin_url'], '/').'/zones/'.$zoneId.'/area-list';
+        $areasResp = $client->get($areasUrl);
+        $areasBody = $areasResp->json();
+
+        return $areasBody['data']['data'] ?? [];
     }
 }

@@ -67,6 +67,7 @@ return [
         'client_secret' => env('PATHAO_CLIENT_SECRET'),
         'pathao_username' => env('PATHAO_USERNAME'),
         'pathao_password' => env('PATHAO_PASSWORD'),
+        'pathao_store_id' => env('PATHAO_STORE_ID', '322798'),
         'aladdin_url' => env('PATHAO_ALADDIN_URL'),
         'base_url' => env('PATHAO_BASE_URL'),
 

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Order;
+use App\Models\OrderShipment;
 use App\Traits\PathaoApiTrait;
 use Illuminate\Support\Facades\Log;
 
@@ -32,22 +33,22 @@ class PathaoCourierService
 
         // Resolve Pathao location IDs from the address object
         $loc = $this->resolver->resolveFromAddress($this->shipping_address);
-        dd($loc);
+
         if (!$loc['success']) {
             return ['success' => false, 'message' => $loc['message']];
         }
 
-        $cod_amount = $this->order->orderDetails->sum('price') + $this->order->orderDetails()->sum('shipping_cost');
+        $cod_amount = (int) ($this->order->orderDetails->sum('price') + $this->order->orderDetails()->sum('shipping_cost'));
 
         $orderData = [
-            'store_id' => config('services.pathao-courier.store_id'),
+            'store_id' => (int) config('services.pathao-courier.pathao_store_id'),
             'merchant_order_id' => $this->order->code,
             'recipient_name' => $this->shipping_address->name,
-            'recipient_phone' => $this->shipping_address->phone,
-            'recipient_address' => $this->formatAddress(),
-            'recipient_city' => $loc['recipient_city'],
-            'recipient_zone' => $loc['recipient_zone'],
-            'recipient_area' => $loc['recipient_area'],
+            'recipient_phone' => str_replace('+88', '', $this->shipping_address->phone),
+            'recipient_address' => $this->shipping_address->address,
+            'recipient_city' => $loc['recipient_city_id'],
+            'recipient_zone' => $loc['recipient_zone_id'],
+            'recipient_area' => $loc['recipient_area_id'] ?? null,
             'delivery_type' => 48,
             'item_type' => 2,
             'special_instruction' => $this->order->additional_info,
@@ -60,7 +61,7 @@ class PathaoCourierService
         Log::info('Pathao Order Data', $orderData);
 
         $config = $this->getPathaoConfig();
-        $url = rtrim($config['base_url'], '/').'/orders';
+        $url = rtrim($config['aladdin_url'], '/').'/orders';
         $client = $this->httpClientWithAuth($this->access_token);
 
         try {
@@ -95,7 +96,7 @@ class PathaoCourierService
                 'location_info' => [
                     'city' => $loc['city_name'],
                     'zone' => $loc['zone_name'],
-                    'area' => $loc['area_name']
+                    'area' => $loc['area_name'] ?? null,
                 ]
             ];
         } catch (\Exception $e) {
@@ -107,5 +108,41 @@ class PathaoCourierService
         }
     }
 
-    // ... keep the rest of your methods (updateOrderShipment, formatAddress) the same
+    protected function updateOrderShipment($response): OrderShipment
+    {
+        $c = $response['consignment'] ?? $response;
+
+        $shipment = OrderShipment::create([
+            'order_id' => $this->order->id,
+            'invoice_no' => $c['invoice']
+                ?? $c['customer_invoice_number']
+                    ?? $c['merchant_order_id']
+                    ?? ($response['merchant_order_id'] ?? $this->order->code),
+            'consignment_no' => $c['consignment_id'] ?? $c['id'] ?? ($response['order_id'] ?? null),
+            'tracking_code' => $c['tracking_code'] ?? $c['tracking_number'] ?? ($response['tracking_code'] ?? null),
+            'carrier' => 'pathao',
+            'status' => $c['status'] ?? ($response['status'] ?? 'created'),
+            'recipient_name' => $c['recipient_name'] ?? ($response['recipient_name'] ?? ($this->shipping_address->name ?? null)),
+            'recipient_address' => $c['recipient_address'] ?? ($response['recipient_address'] ?? $this->formatAddress()),
+            'recipient_phone' => $c['recipient_phone'] ?? ($response['recipient_phone'] ?? ($this->shipping_address->phone ?? null)),
+            'phone' => $c['alternative_phone'] ?? ($response['alternative_phone'] ?? null),
+            'note' => $c['note'] ?? ($response['note'] ?? ($this->order->additional_info ?? null)),
+        ]);
+
+        $this->order->update([
+            'delivery_status' => 'processing',
+        ]);
+
+        return $shipment;
+    }
+
+    protected function formatAddress(): string
+    {
+        return implode(', ', array_filter([
+            $this->shipping_address->address ?? null,
+            $this->shipping_address->city ?? null,
+            $this->shipping_address->state ?? null,
+            $this->shipping_address->postal_code ?? null,
+        ]));
+    }
 }

@@ -91,4 +91,6 @@ return [
     |
     */
     'pathao_grant_type_refresh_token' => 'refresh_token', // Don't change it
+
+    'pathao_store_id' => env('PATHAO_STORE_ID', '322798'),
 ];
