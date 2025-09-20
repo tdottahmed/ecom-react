@@ -474,7 +474,7 @@
         </script>
 
         <script>
-            @if ((Route::currentRouteName() == 'home' || Route::currentRouteName() == '/') && false)
+            @if (Route::currentRouteName() == 'home' || Route::currentRouteName() == '/')
 
             $.post('{{ route('home.section.featured') }}', {
                 _token: '{{ csrf_token() }}'
@@ -496,7 +496,6 @@
                 $('#section_best_selling').html(data);
                 AIZ.plugins.slickCarousel();
             });
-
 
             $.post('{{ route('home.section.newest_products') }}', {
                 _token: '{{ csrf_token() }}'
@@ -529,17 +528,8 @@
                 $('#section_home_categories').html(data);
                 AIZ.plugins.slickCarousel();
             });
-            @endif
 
-            @if((Route::currentRouteName() == 'home' || Route::currentRouteName() == '/'))
-            $.post('{{ route('home.section.category_products') }}', {
-                _token: '{{ csrf_token() }}'
-            }, function (data) {
-                $('#section_category_products').html(data);
-            })
-            ;
             @endif
-
 
             $(document).ready(function () {
                 $('.category-nav-element').each(function (i, el) {
