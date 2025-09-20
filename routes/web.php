@@ -140,6 +140,8 @@ Route::controller(HomeController::class)->group(function () {
 
     //Home Page
     Route::get('/', 'index')->name('home');
+    Route::get('/landing/{slug}',
+        [\App\Http\Controllers\CustomPageController::class, 'frontendShow'])->name('custom-landing-page.frontendShow');
 
     Route::post('/home/section/featured', 'load_featured_section')->name('home.section.featured');
     Route::post('/home/section/category-products',

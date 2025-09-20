@@ -1913,6 +1913,14 @@
                                     </a>
                                 </li>
                             @endcan
+                            @can('view_all_website_pages')
+                                <li class="aiz-side-nav-item">
+                                    <a href="{{ route('custom-landing-pages.index') }}"
+                                       class="aiz-side-nav-link {{ areActiveRoutes(['custom-landing-pages.index', 'custom-landing-pages.create' ,'custom-landing-pages.edit'])}}">
+                                        <span class="aiz-side-nav-text">{{translate('Custom Landing Page')}}</span>
+                                    </a>
+                                </li>
+                            @endcan
                             @can('website_appearance')
                                 <li class="aiz-side-nav-item">
                                     <a href="{{ route('website.appearance') }}" class="aiz-side-nav-link">

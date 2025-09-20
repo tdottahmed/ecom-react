@@ -380,6 +380,9 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
             Route::get('/custom-pages/edit/{id}', 'edit')->name('custom-pages.edit');
             Route::get('/custom-pages/destroy/{id}', 'destroy')->name('custom-pages.destroy');
         });
+
+//        Custom Landing Page
+        Route::resource('custom-landing-pages', \App\Http\Controllers\CustomPageController::class);
     });
 
     // Staff Roles
