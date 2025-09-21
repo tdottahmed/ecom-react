@@ -7,7 +7,9 @@
     <title>{{ $detailedProduct->name }} - Product Details</title>
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
     <style>
         /* CSS Reset and Base Styles */
         * {
@@ -31,6 +33,7 @@
             --secondary: #FF9800;
             --accent: #4CAF50;
             --danger: #E53935;
+            --warning: #FFC107;
             --text-dark: #212121;
             --text-light: #ffffff;
             --background-light: #ffffff;
@@ -120,11 +123,6 @@
         .section-hero {
             background: #ffffff;
             padding: 30px 20px;
-        }
-
-        .section-products {
-            background: #FFF5EC;
-            padding: 40px 20px;
         }
 
         .section-checkout {
@@ -309,6 +307,7 @@
 
         .form-group {
             margin-bottom: 20px;
+            position: relative;
         }
 
         .form-group label {
@@ -324,12 +323,18 @@
             padding: 12px;
             font-size: 16px;
             width: 100%;
-            transition: border-color 0.3s ease;
+            transition: all 0.3s ease;
         }
 
         .input:focus {
             outline: none;
             border-color: #1A73E8;
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2);
+        }
+
+        .input-error {
+            border-color: var(--danger);
+            box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.2);
         }
 
         textarea.input {
@@ -358,6 +363,35 @@
             margin-top: 20px;
             padding-top: 20px;
             border-top: 2px solid var(--primary);
+        }
+
+        /* Error Messages */
+        .error-message {
+            color: var(--danger);
+            font-size: 14px;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .error-message i {
+            font-size: 16px;
+        }
+
+        .validation-error {
+            background-color: rgba(229, 57, 53, 0.1);
+            border-left: 4px solid var(--danger);
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .validation-error p {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         /* Responsive Design */
@@ -501,6 +535,62 @@
             margin: 0 10px;
             font-size: 16px;
         }
+
+        /* Select2 customization */
+        .select2-container--default .select2-selection--single {
+            height: 46px;
+            border: 1px solid #E0E0E0;
+            border-radius: 6px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 46px;
+            padding-left: 12px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 44px;
+        }
+
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            border: 1px solid #E0E0E0;
+            border-radius: 6px;
+            padding: 8px;
+        }
+
+        .select2-error .select2-selection {
+            border-color: var(--danger) !important;
+        }
+
+        /* Direct order button */
+        .direct-order-btn {
+            margin-top: 20px;
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+        }
+
+        /* District radio buttons */
+        .district-options {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .district-option {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+        }
+
+        .district-option input {
+            margin-right: 8px;
+        }
+
+        /* Required field indicator */
+        .text-danger {
+            color: var(--danger);
+        }
     </style>
 </head>
 
@@ -520,8 +610,8 @@
                                 $photos = explode(',', $detailedProduct->photos);
                             @endphp
                             @foreach($photos as $index => $photo)
-                                <div class="thumbnail" data-image="{{ asset($photo) }}">
-                                    <img src="{{ asset($photo) }}" alt="Thumbnail {{ $index + 1 }}">
+                                <div class="thumbnail" data-image="{{ uploaded_asset($photo) }}">
+                                    <img src="{{ uploaded_asset($photo) }}" alt="Thumbnail {{ $index + 1 }}">
                                 </div>
                             @endforeach
                         @else
@@ -532,7 +622,8 @@
                     </div>
                     <div class="gallery-main">
                         @if($detailedProduct->photos)
-                            <img id="main-product-image" src="{{ asset(explode(',', $detailedProduct->photos)[0]) }}"
+                            <img id="main-product-image"
+                                 src="{{ uploaded_asset(explode(',', $detailedProduct->photos)[0]) }}"
                                  alt="{{ $detailedProduct->name }}">
                         @else
                             <img id="main-product-image" src="{{ asset('images/placeholder.jpg') }}" alt="No image">
@@ -599,14 +690,9 @@
                         <button class="quantity-btn" id="increase-qty">+</button>
                     </div>
 
-                    <div style="display: flex; gap: 15px; margin-top: 20px;">
-                        <button class="btn btn-primary" id="add-to-cart-btn">
-                            <i class="fas fa-shopping-cart"></i> Add to Cart
-                        </button>
-                        <button class="btn btn-secondary" id="buy-now-btn">
-                            <i class="fas fa-bolt"></i> Buy Now
-                        </button>
-                    </div>
+                    <button class="btn btn-primary direct-order-btn" id="buy-now-btn">
+                        <i class="fas fa-bolt"></i> Order Now
+                    </button>
                 </div>
             </div>
         </div>
@@ -752,66 +838,165 @@
     <!-- Checkout Section -->
     <section id="checkout" class="section section-checkout">
         <div class="container">
-            <h2 style="text-align: center; margin-bottom: 30px;">Order Now</h2>
+            <h2 style="text-align: center; margin-bottom: 30px;">Complete Your Order</h2>
 
             <div class="checkout-container">
                 <!-- Billing & Shipping Form -->
                 <div class="checkout-form">
                     <h3 style="margin-bottom: 30px;">Your Information</h3>
 
-                    <form id="order-form">
+                    <!-- Validation Errors -->
+                    @if ($errors->any())
+                        <div class="validation-error">
+                            <h4 style="margin-bottom: 10px; color: var(--danger);">
+                                <i class="fas fa-exclamation-circle"></i> Please fix the following errors:
+                            </h4>
+                            @foreach ($errors->all() as $error)
+                                <p><i class="fas fa-times-circle"></i> {{ $error }}</p>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    <form action="{{ route('guest.checkout') }}" method="post" id="checkoutForm">
                         @csrf
                         <input type="hidden" name="product_id" value="{{ $detailedProduct->id }}">
-                        <input type="hidden" name="quantity" id="form-quantity" value="1">
+                        <input type="hidden" name="quantity" id="form-quantity" value="{{ old('quantity', 1) }}">
+                        <input type="hidden" name="country_id" value="{{ $country->id }}">
 
+                        {{-- Name --}}
                         <div class="form-group">
-                            <label for="fullName">Your Name</label>
-                            <input type="text" id="fullName" name="name" class="input" placeholder="Your full name"
-                                   required>
+                            <label for="fullName">Your Name <span class="text-danger">*</span></label>
+                            <input type="text" id="fullName" name="name"
+                                   class="input {{ $errors->has('name') ? 'input-error' : '' }}"
+                                   placeholder="Enter your full name" value="{{ old('name') }}" required>
+                            @if($errors->has('name'))
+                                <div class="error-message">
+                                    <i class="fas fa-exclamation-circle"></i> {{ $errors->first('name') }}
+                                </div>
+                            @endif
                         </div>
 
+                        {{-- Phone --}}
                         <div class="form-group">
-                            <label for="mobileNumber">Mobile Number</label>
-                            <input type="tel" id="mobileNumber" name="phone" class="input" placeholder="+8801XXXXXXXXX"
-                                   required>
+                            <label for="mobileNumber">Mobile Number <span class="text-danger">*</span></label>
+                            <input type="tel" id="mobileNumber" name="phone"
+                                   class="input {{ $errors->has('phone') ? 'input-error' : '' }}"
+                                   placeholder="+8801XXXXXXXXX" value="{{ old('phone') }}" required>
+                            @if($errors->has('phone'))
+                                <div class="error-message">
+                                    <i class="fas fa-exclamation-circle"></i> {{ $errors->first('phone') }}
+                                </div>
+                            @endif
                         </div>
 
+                        {{-- Email --}}
                         <div class="form-group">
-                            <label for="email">Email Address</label>
-                            <input type="email" id="email" name="email" class="input" placeholder="your@email.com">
+                            <label for="email">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" id="email" name="email"
+                                   class="input {{ $errors->has('email') ? 'input-error' : '' }}"
+                                   placeholder="example@email.com" value="{{ old('email') }}" required>
+                            @if($errors->has('email'))
+                                <div class="error-message">
+                                    <i class="fas fa-exclamation-circle"></i> {{ $errors->first('email') }}
+                                </div>
+                            @endif
                         </div>
 
+                        {{-- Address --}}
                         <div class="form-group">
-                            <label for="address">Full Address</label>
-                            <textarea id="address" name="address" class="input" rows="3"
-                                      placeholder="Your complete address" required></textarea>
+                            <label for="address">Full Address <span class="text-danger">*</span></label>
+                            <textarea id="address" name="address"
+                                      class="input {{ $errors->has('address') ? 'input-error' : '' }}"
+                                      rows="3" placeholder="Enter your complete address"
+                                      required>{{ old('address') }}</textarea>
+                            @if($errors->has('address'))
+                                <div class="error-message">
+                                    <i class="fas fa-exclamation-circle"></i> {{ $errors->first('address') }}
+                                </div>
+                            @endif
                         </div>
 
+                        {{-- State --}}
                         <div class="form-group">
-                            <label>District</label>
-                            <div style="display: flex; gap: 20px; margin-top: 10px;">
-                                <label style="display: flex; align-items: center; font-weight: normal;">
-                                    <input type="radio" name="district" value="inside-dhaka" style="margin-right: 8px;"
-                                           required>
+                            <label for="state_id">Select State <span class="text-danger">*</span></label>
+                            <select id="state_id" name="state_id"
+                                    class="input state-select {{ $errors->has('state_id') ? 'select2-error' : '' }}"
+                                    required>
+                                <option value="">-- Select State --</option>
+                                @if(old('state_id'))
+                                    <option value="{{ old('state_id') }}" selected>{{ old('state_id') }}</option>
+                                @endif
+                            </select>
+                            @if($errors->has('state_id'))
+                                <div class="error-message">
+                                    <i class="fas fa-exclamation-circle"></i> {{ $errors->first('state_id') }}
+                                </div>
+                            @endif
+                        </div>
+
+                        {{-- City --}}
+                        <div class="form-group">
+                            <label for="city_id">Select City <span class="text-danger">*</span></label>
+                            <select id="city_id" name="city_id"
+                                    class="input city-select {{ $errors->has('city_id') ? 'select2-error' : '' }}"
+                                    required>
+                                <option value="">-- Select City --</option>
+                                @if(old('city_id'))
+                                    <option value="{{ old('city_id') }}" selected>{{ old('city_id') }}</option>
+                                @endif
+                            </select>
+                            @if($errors->has('city_id'))
+                                <div class="error-message">
+                                    <i class="fas fa-exclamation-circle"></i> {{ $errors->first('city_id') }}
+                                </div>
+                            @endif
+                        </div>
+
+                        {{-- District --}}
+                        <div class="form-group">
+                            <label>District <span class="text-danger">*</span></label>
+                            <div class="district-options">
+                                <label class="district-option">
+                                    <input type="radio" name="district" value="inside-dhaka"
+                                           {{ old('district') == 'inside-dhaka' ? 'checked' : '' }} required>
                                     Inside Dhaka
                                 </label>
-                                <label style="display: flex; align-items: center; font-weight: normal;">
-                                    <input type="radio" name="district" value="outside-dhaka" style="margin-right: 8px;"
-                                           required>
+                                <label class="district-option">
+                                    <input type="radio" name="district" value="outside-dhaka"
+                                           {{ old('district') == 'outside-dhaka' ? 'checked' : '' }} required>
                                     Outside Dhaka
                                 </label>
                             </div>
+                            @if($errors->has('district'))
+                                <div class="error-message">
+                                    <i class="fas fa-exclamation-circle"></i> {{ $errors->first('district') }}
+                                </div>
+                            @endif
                         </div>
 
+                        {{-- Payment --}}
                         <div class="form-group">
-                            <label for="payment_method">Payment Method</label>
-                            <select id="payment_method" name="payment_method" class="input" required>
-                                <option value="">Select Payment Method</option>
-                                <option value="cash_on_delivery">Cash on Delivery</option>
-                                <option value="bkash">bKash</option>
-                                <option value="nagad">Nagad</option>
-                                <option value="card">Credit/Debit Card</option>
+                            <label for="payment_method">Payment Method <span class="text-danger">*</span></label>
+                            <select id="payment_method" name="payment_method"
+                                    class="input {{ $errors->has('payment_method') ? 'input-error' : '' }}" required>
+                                <option value="">-- Select Payment Method --</option>
+                                <option
+                                    value="cash_on_delivery" {{ old('payment_method') == 'cash_on_delivery' ? 'selected' : '' }}>
+                                    Cash on Delivery
+                                </option>
+                                <option value="bkash" {{ old('payment_method') == 'bkash' ? 'selected' : '' }}>bKash
+                                </option>
+                                <option value="nagad" {{ old('payment_method') == 'nagad' ? 'selected' : '' }}>Nagad
+                                </option>
+                                <option value="card" {{ old('payment_method') == 'card' ? 'selected' : '' }}>
+                                    Credit/Debit Card
+                                </option>
                             </select>
+                            @if($errors->has('payment_method'))
+                                <div class="error-message">
+                                    <i class="fas fa-exclamation-circle"></i> {{ $errors->first('payment_method') }}
+                                </div>
+                            @endif
                         </div>
 
                         <button type="submit" id="checkoutSubmitBtn" class="btn btn-primary"
@@ -828,6 +1013,11 @@
                     <div class="order-item">
                         <span>{{ $detailedProduct->name }}</span>
                         <span>৳{{ number_format($detailedProduct->unit_price, 2) }}</span>
+                    </div>
+
+                    <div class="order-item">
+                        <span>Quantity</span>
+                        <span id="summary-quantity">{{ old('quantity', 1) }}</span>
                     </div>
 
                     <div class="order-item">
@@ -873,6 +1063,17 @@
 <!-- Footer -->
 <script>
     $(document).ready(function () {
+        // Initialize select2 for state and city dropdowns
+        $('.state-select').select2({
+            placeholder: "Select State",
+            allowClear: true
+        });
+
+        $('.city-select').select2({
+            placeholder: "Select City",
+            allowClear: true
+        });
+
         // Tab functionality
         $('.tab-header').click(function () {
             $('.tab-header').removeClass('active');
@@ -926,8 +1127,9 @@
         function updateOrderSummary() {
             const quantity = parseInt($('#product-quantity').val());
             $('#form-quantity').val(quantity);
+            $('#summary-quantity').text(quantity);
 
-            // Calculate prices (this is a simplified version)
+            // Calculate prices
             const unitPrice = {{ $detailedProduct->unit_price }};
             const discount = {{ $detailedProduct->discount }};
             const discountType = '{{ $detailedProduct->discount_type }}';
@@ -944,7 +1146,7 @@
             }
 
             const subtotal = discountedPrice * quantity;
-            const shipping = 60; // Fixed shipping cost
+            const shipping = parseInt($('#shipping-cost').text().replace('৳', '').replace(',', ''));
             const total = subtotal + shipping + tax;
 
             // Update the order summary
@@ -966,32 +1168,103 @@
         });
 
         // Form submission
-        $('#order-form').submit(function (e) {
-            e.preventDefault();
+        $('#checkoutForm').submit(function (e) {
+            let valid = true;
+            let message = "";
 
-            // Basic validation
-            const phonePattern = /^\+8801\d{9}$/;
-            const phoneValue = $('#mobileNumber').val();
+            // Name validation
+            const nameValue = $('#fullName').val().trim();
+            if (nameValue.length < 3 || !/^[a-zA-Z\s]+$/.test(nameValue)) {
+                message = "Please enter a valid full name (only letters, at least 3 characters).";
+                $('#fullName').focus();
+                valid = false;
+            }
 
-            if (!phonePattern.test(phoneValue)) {
-                alert('Please enter a valid Bangladeshi mobile number (format: +8801XXXXXXXXX)');
+            // Phone validation (Bangladesh format)
+            const phoneValue = $('#mobileNumber').val().trim();
+            const phonePattern = /^(?:\+8801|01)[3-9]\d{8}$/;
+            if (valid && !phonePattern.test(phoneValue)) {
+                message = "Please enter a valid Bangladeshi mobile number (e.g. +8801XXXXXXXXX or 01XXXXXXXXX).";
                 $('#mobileNumber').focus();
+                valid = false;
+            }
+
+            // Email validation
+            const emailValue = $('#email').val().trim();
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (valid && (!emailValue || !emailPattern.test(emailValue))) {
+                message = "Please enter a valid email address.";
+                $('#email').focus();
+                valid = false;
+            }
+
+            // Address validation
+            const addressValue = $('#address').val().trim();
+            if (valid && addressValue.length < 10) {
+                message = "Please enter a complete address (at least 10 characters).";
+                $('#address').focus();
+                valid = false;
+            }
+
+            // State validation
+            if (valid && !$('#state_id').val()) {
+                message = "Please select your state.";
+                $('#state_id').focus();
+                valid = false;
+            }
+
+            // City validation
+            if (valid && !$('#city_id').val()) {
+                message = "Please select your city.";
+                $('#city_id').focus();
+                valid = false;
+            }
+
+            // District validation
+            if (valid && !$("input[name='district']:checked").val()) {
+                message = "Please select your district (Inside/Outside Dhaka).";
+                valid = false;
+            }
+
+            // Payment validation
+            if (valid && !$('#payment_method').val()) {
+                message = "Please select your payment method.";
+                $('#payment_method').focus();
+                valid = false;
+            }
+
+            if (!valid) {
+                // Create a temporary error display
+                const errorHtml = `
+                    <div class="validation-error">
+                        <h4 style="margin-bottom: 10px; color: var(--danger);">
+                            <i class="fas fa-exclamation-circle"></i> Please fix the following error:
+                        </h4>
+                        <p><i class="fas fa-times-circle"></i> ${message}</p>
+                    </div>
+                `;
+
+                // Remove any existing temporary errors
+                $('.validation-error.temporary').remove();
+
+                // Add the error message at the top of the form
+                $(errorHtml).addClass('temporary').insertBefore('#checkoutForm .form-group:first');
+
+                // Scroll to the error message
+                $('html, body').animate({
+                    scrollTop: $('.validation-error.temporary').offset().top - 100
+                }, 500);
+
                 return false;
             }
 
-            // If validation passes, you would typically submit via AJAX
-            alert('Order placed successfully! This is a demo.');
+            // Submit form if all validation passes
+            return true;
         });
 
         $('#question-form').submit(function (e) {
             e.preventDefault();
             alert('Question submitted! This is a demo.');
-        });
-
-        // Add to cart button
-        $('#add-to-cart-btn').click(function () {
-            const quantity = $('#product-quantity').val();
-            alert('Added ' + quantity + ' item(s) to cart! This is a demo.');
         });
 
         // Buy now button
@@ -1009,6 +1282,55 @@
 
         // Start button zoom animation every 5 seconds
         setInterval(addButtonZoom, 5000);
+
+        // Load States on page load (since country is fixed)
+        let countryId = $("input[name='country_id']").val();
+        if (countryId) {
+            $.post("{{ route('get-state') }}", {
+                _token: '{{ csrf_token() }}',
+                country_id: countryId
+            }, function (data) {
+                $('#state_id').html(JSON.parse(data));
+                $('#state_id').trigger('change.select2');
+
+                // Select previously selected state if exists
+                @if(old('state_id'))
+                $('#state_id').val('{{ old('state_id') }}').trigger('change');
+                @endif
+            });
+        }
+
+        // When state is selected, load cities
+        $('#state_id').on('change', function () {
+            let stateId = $(this).val();
+
+            if (stateId) {
+                $.post("{{ route('get-city') }}", {
+                    _token: '{{ csrf_token() }}',
+                    state_id: stateId
+                }, function (data) {
+                    $('#city_id').html(JSON.parse(data));
+                    $('#city_id').trigger('change.select2');
+
+                    // Select previously selected city if exists
+                    @if(old('city_id'))
+                    $('#city_id').val('{{ old('city_id') }}').trigger('change');
+                    @endif
+                });
+            } else {
+                $('#city_id').html('<option value="">Select City</option>');
+                $('#city_id').trigger('change.select2');
+            }
+        });
+
+        // Initialize with old values if they exist
+        @if(old('state_id'))
+        // State will be handled in the AJAX callback
+        @endif
+
+        @if(old('city_id'))
+        // City will be handled in the AJAX callback
+        @endif
     });
 </script>
 </body>

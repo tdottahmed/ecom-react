@@ -380,6 +380,9 @@ Route::controller(AddressController::class)->group(function () {
     Route::post('/get-states', 'getStates')->name('get-state');
     Route::post('/get-cities', 'getCities')->name('get-city');
 });
+Route::post('/guest-checkout', [CheckoutController::class, 'guestCheckout'])->name('guest.checkout');
+Route::get('/guest-order-confirmed/{order_id}',
+    [CheckoutController::class, 'guestOrderConfirmed'])->name('guest_order.confirmed');
 
 Route::group(['middleware' => ['auth']], function () {
 

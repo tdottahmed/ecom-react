@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Country;
 use App\Models\CustomPage;
 use App\Models\OrderDetail;
 use App\Models\Product;
@@ -63,7 +64,6 @@ class CustomPageController extends Controller
 
     public function edit(Request $request, $id)
     {
-        // id might be slug in existing UI links, support both
         $page = CustomPage::where('id', $id)->orWhere('slug', $id)->firstOrFail();
         $lang = $request->get('lang', app()->getLocale());
         $products = Product::select('id', 'name', 'slug')->latest()->limit(200)->get();
@@ -143,18 +143,6 @@ class CustomPageController extends Controller
         return view('frontend.custom-page.show', compact('page'));
     }
 
-    public function showBySlug($slug)
-    {
-        $page = CustomPage::with([
-            'products' => function ($q) {
-                $q->select('products.id', 'name', 'slug', 'thumbnail_img');
-            }
-        ])->where('slug', $slug)->firstOrFail();
-
-        abort_unless($page->is_active, 404);
-
-        return view('frontend.custom-page.show', compact('page'));
-    }
 
     protected function generateMetaFields(CustomPage $page, Product $product): void
     {
@@ -165,6 +153,7 @@ class CustomPageController extends Controller
 
     public function frontendShow($slug)
     {
+        $country = Country::where('name', 'Bangladesh')->first();
         if (!Auth::check()) {
             session(['link' => url()->current()]);
         }
@@ -218,9 +207,8 @@ class CustomPageController extends Controller
             }
 
             return view('frontend.product-landing',
-                compact('detailedProduct', 'product_queries', 'total_query', 'reviews', 'review_status'));
+                compact('detailedProduct', 'product_queries', 'total_query', 'reviews', 'review_status', 'country'));
         }
         abort(404);
     }
-
 }

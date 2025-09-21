@@ -3083,3 +3083,27 @@ function filter_single_preorder_product($product)
     // If vendor system is not activated, return the product directly
     return $product;
 }
+
+if (!function_exists('single_price')) {
+    function single_price($price)
+    {
+        return format_price(convert_price($price));
+    }
+}
+
+if (!function_exists('convert_price')) {
+    function convert_price($price)
+    {
+        // Add your currency conversion logic here
+        return $price;
+    }
+}
+
+if (!function_exists('format_price')) {
+    function format_price($price)
+    {
+        // Format the price with currency symbol
+        $currency_symbol = '৳'; // Change to your currency symbol
+        return $currency_symbol.number_format($price, 2);
+    }
+}
