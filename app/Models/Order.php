@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Traits\PreventDemoModeChanges;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Order extends Model
 {
@@ -69,5 +70,10 @@ class Order extends Model
     public function fraudCheckHistory()
     {
         return $this->hasOne(FraudCheckHistory::class);
+    }
+
+    public function orderShipment(): HasOne
+    {
+        return $this->hasOne(OrderShipment::class, 'order_id', 'id');
     }
 }

@@ -644,31 +644,29 @@ class OrderController extends Controller
 
     public function orderCourier(Request $request)
     {
-//        $result = CourierFraudCheckerBd::check('01876525073');
-//        dd($result);
         $order = Order::findOrFail($request->order_id);
         $shippingDetails = json_decode($order->shipping_address);
 
-//        try {
-        $courierService = match ($request->courier) {
-            'steadfast' => new SteadFastCourierServic($order, $shippingDetails),
-            'pathao' => new PathaoCourierService($order, $shippingDetails),
-            default => throw new \Exception('Invalid courier service')
-        };
-        $response = $courierService->handle();
+        try {
+            $courierService = match ($request->courier) {
+                'steadfast' => new SteadFastCourierServic($order, $shippingDetails),
+                'pathao' => new PathaoCourierService($order, $shippingDetails),
+                default => throw new \Exception('Invalid courier service')
+            };
+            $response = $courierService->handle();
 
-        if ($response['success']) {
-            flash(translate('Order courier created successfully'))->success();
+            if ($response['success']) {
+                flash(translate('Order courier created successfully'))->success();
+                return back();
+            }
+
+            flash(translate($response['message'] ?? 'Failed to create courier order'))->error();
+            return back();
+
+        } catch (\Exception $e) {
+            flash(translate('Something went wrong'))->error();
             return back();
         }
-
-        flash(translate($response['message'] ?? 'Failed to create courier order'))->error();
-        return back();
-
-//        } catch (\Exception $e) {
-//            flash(translate('Something went wrong'))->error();
-//            return back();
-//        }
     }
 
     public function checkFraud($order_id)
@@ -724,5 +722,20 @@ class OrderController extends Controller
         );
 
         return back()->with('status', 'Fraud check saved successfully.');
+    }
+
+    public function courierOrders(Request $request)
+    {
+        $orders = Order::with(['orderShipment', 'orderDetails', 'user', 'shop', 'fraudCheckHistory'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(25);
+        return view('backend.sales.courier-orders', compact('orders'));
+    }
+
+    public function shipmentHistory(Order $order)
+    {
+        $shipments = $order->shipments()->orderBy('created_at', 'desc')->get();
+
+        return view('backend.sales.partials.shipment-history', compact('order', 'shipments'));
     }
 }

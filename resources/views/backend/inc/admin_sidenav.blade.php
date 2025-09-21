@@ -729,14 +729,7 @@
                                     </a>
                                 </li>
                             @endcan
-                            @can('view_all_orders')
-                                <li class="aiz-side-nav-item">
-                                    <a href="{{ route('courier_orders.index') }}"
-                                       class="aiz-side-nav-link {{ areActiveRoutes(['all_orders.index', 'all_orders.show'])}}">
-                                        <span class="aiz-side-nav-text">{{translate('Pending Delivery')}}</span>
-                                    </a>
-                                </li>
-                            @endcan
+
                             @can('view_inhouse_orders')
                                 <li class="aiz-side-nav-item">
                                     <a href="{{ route('inhouse_orders.index') }}"
@@ -769,6 +762,14 @@
                                     <a href="{{ route('unpaid_orders.index') }}"
                                        class="aiz-side-nav-link {{ areActiveRoutes(['unpaid_orders.index'])}}">
                                         <span class="aiz-side-nav-text">{{translate('Unpaid Orders')}}</span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('view_all_orders')
+                                <li class="aiz-side-nav-item">
+                                    <a href="{{ route('courier_orders.index') }}"
+                                       class="aiz-side-nav-link {{ areActiveRoutes(['all_orders.index', 'all_orders.show'])}}">
+                                        <span class="aiz-side-nav-text">{{translate('Courier Histories')}}</span>
                                     </a>
                                 </li>
                             @endcan
