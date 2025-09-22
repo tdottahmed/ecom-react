@@ -71,16 +71,13 @@
                         @endif
 
                         <th>{{ translate('Order Code') }}</th>
-                        <th data-breakpoints="md">{{ translate('Num. of Products') }}</th>
                         <th data-breakpoints="md">{{ translate('Customer') }}</th>
-                        <th data-breakpoints="md">{{ translate('Seller') }}</th>
                         <th data-breakpoints="md">{{ translate('Amount') }}</th>
-                        <th data-breakpoints="md">{{ translate('Delivery Status') }}</th>
-                        <th data-breakpoints="md">{{ translate('Payment method') }}</th>
                         <th data-breakpoints="md">{{ translate('Payment Status') }}</th>
                         <th data-breakpoints="md">{{ translate('Shipment Status') }}</th>
-                        <th data-breakpoints="md">{{ translate('Tracking Info') }}</th>
-                        <th data-breakpoints="md">{{ translate('User Delivery History') }}</th>
+                        <th data-breakpoints="md">{{ translate('Shipment Status') }}</th>
+                        <th data-breakpoints="md">{{ translate('Tracking code') }}</th>
+                        <th data-breakpoints="md">{{ translate('Recepient phone') }}</th>
                         @if (addon_is_activated('refund_request'))
                             <th>{{ translate('Refund') }}</th>
                         @endif
@@ -114,9 +111,7 @@
                                     <span class="badge badge-inline badge-danger">{{ translate('POS') }}</span>
                                 @endif
                             </td>
-                            <td>
-                                {{ count($order->orderDetails) }}
-                            </td>
+
                             <td>
                                 @if ($order->user != null)
                                     {{ $order->user->name }}
@@ -124,29 +119,9 @@
                                     Guest ({{ $order->guest_id }})
                                 @endif
                             </td>
-                            <td>
-                                @if ($order->shop)
-                                    {{ $order->shop->name }}
-                                @else
-                                    {{ translate('Inhouse Order') }}
-                                @endif
-                            </td>
+
                             <td>
                                 {{ single_price($order->grand_total) }}
-                            </td>
-                            <td>
-                                @if($order->delivery_status=='pending')
-                                    <button type="button" class="btn btn-soft-success btn-sm"
-                                            onclick="showCourierModal({{ $order->id }})">
-                                        <i class="las la-check"></i>
-                                        Courier now
-                                    </button>
-                                @else
-                                    {{ translate(ucfirst(str_replace('_', ' ', $order->delivery_status))) }}
-                                @endif
-                            </td>
-                            <td>
-                                {{ translate(ucfirst(str_replace('_', ' ', $order->payment_type))) }}
                             </td>
                             <td>
                                 @if ($order->payment_status == 'paid')
@@ -190,6 +165,17 @@
                                     </a>
                                 @endif
                             </td>
+                            <td>
+                                @if($order->orderShipment->carier = 'steadfast')
+                                    <a href="{{'https://steadfast.com.bd/t/'. $order->orderShipment->tracking_code}}"
+                                       target="_blank">
+                                        {{ $order->orderShipment->tracking_code }}
+                                    </a>
+                                @endif
+                            </td>
+                            <td>
+                                {{$order->orderShipment->recipient_phone}}
+                            </td>
                             <td class="text-right">
                                 @if (addon_is_activated('pos_system') && $order->order_from == 'pos')
                                     <a class="btn btn-soft-success btn-icon btn-circle btn-sm"
@@ -221,84 +207,6 @@
                                     <i class="las la-download"></i>
                                 </a>
 
-                                @can('delete_order')
-                                    <a href="#"
-                                       class="btn btn-soft-danger btn-icon btn-circle btn-sm confirm-delete"
-                                       data-href="{{ route('orders.destroy', $order->id) }}"
-                                       title="{{ translate('Delete') }}">
-                                        <i class="las la-trash"></i>
-                                    </a>
-                                @endcan
-                            </td>
-                        </tr>
-
-                        <!-- Expanded row for shipment history -->
-                        <tr class="expandable-row d-none" id="shipment-history-{{ $order->id }}">
-                            <td colspan="100%">
-                                <div class="px-4 py-3 bg-light">
-                                    <h6 class="mb-3">{{ translate('Shipment History') }} - Order
-                                        #{{ $order->code }}</h6>
-
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered table-sm">
-                                            <thead>
-                                            <tr>
-                                                <th>{{ translate('Date') }}</th>
-                                                <th>{{ translate('Invoice No') }}</th>
-                                                <th>{{ translate('Consignment No') }}</th>
-                                                <th>{{ translate('Tracking Code') }}</th>
-                                                <th>{{ translate('Carrier') }}</th>
-                                                <th>{{ translate('Status') }}</th>
-                                                <th>{{ translate('Recipient') }}</th>
-                                                <th>{{ translate('Actions') }}</th>
-                                            </tr>
-                                            </thead>
-                                            <tbody>
-                                            @foreach($order->orderShipment() as $shipment)
-                                                <tr>
-                                                    <td>{{ $shipment->created_at->format('M d, Y H:i') }}</td>
-                                                    <td>{{ $shipment->invoice_no ?? 'N/A' }}</td>
-                                                    <td>{{ $shipment->consignment_no ?? 'N/A' }}</td>
-                                                    <td>{{ $shipment->tracking_code ?? 'N/A' }}</td>
-                                                    <td>{{ $shipment->carrier ?? 'N/A' }}</td>
-                                                    <td>
-                                                        <span class="badge
-                                                            @if($shipment->status == 'delivered') badge-success
-                                                            @elseif($shipment->status == 'shipped') badge-info
-                                                            @elseif($shipment->status == 'cancelled') badge-danger
-                                                            @else badge-warning
-                                                            @endif">
-                                                            {{ ucfirst($shipment->status) }}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        @if($shipment->recipient_name)
-                                                            <div>{{ $shipment->recipient_name }}</div>
-                                                            <small
-                                                                class="text-muted">{{ $shipment->recipient_phone }}</small>
-                                                        @else
-                                                            {{ translate('Not specified') }}
-                                                        @endif
-                                                    </td>
-                                                    <td>
-                                                        <a href="#"
-                                                           class="btn btn-sm btn-primary">
-                                                            {{ translate('Edit') }}
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                            @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    <div class="mt-3">
-                                        <a href="{{ route('shipments.create', ['order_id' => $order->id]) }}"
-                                           class="btn btn-success btn-sm">
-                                            <i class="las la-plus"></i> {{ translate('Add New Shipment') }}
-                                        </a>
-                                    </div>
-                                </div>
                             </td>
                         </tr>
                     @endforeach
@@ -329,31 +237,6 @@
         function toggleShipmentHistory(orderId) {
             $(`#shipment-history-${orderId}`).toggleClass('d-none');
         }
-
-        // Function to show shipment history in modal
-        function showShipmentHistory(orderId) {
-            $.ajax({
-                url: '{{ route("orders.shipments", ":orderId") }}'.replace(':orderId', orderId),
-                type: 'GET',
-                success: function (response) {
-                    $('#shipmentHistoryContent').html(response);
-                    $('#shipmentHistoryModal').modal('show');
-                },
-                error: function (xhr) {
-                    AIZ.plugins.notify('danger', '{{ translate("Error loading shipment history") }}');
-                }
-            });
-        }
-
-        // Initialize table with expandable rows
-        $(document).ready(function () {
-            $('.expandable-row').hide();
-
-            // Handle row expansion
-            $('.toggle-expansion').on('click', function () {
-                const orderId = $(this).data('order-id');
-                $(`#shipment-history-${orderId}`).slideToggle();
-            });
-        });
+        
     </script>
 @endsection
