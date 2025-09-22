@@ -14,7 +14,6 @@
               enctype="multipart/form-data">
             @csrf
             @method('PATCH')
-            <input type="hidden" name="lang" value="{{ $lang }}">
 
             <div class="card-header px-0">
                 <h6 class="fw-600 mb-0">{{ translate('Page Content') }}</h6>
@@ -27,7 +26,7 @@
                             class="text-danger">*</span></label>
                     <div class="col-sm-10">
                         <input type="text" class="form-control" name="title"
-                               value="{{ $page->getTranslation('title',$lang) }}" required>
+                               value="{{ $page->title }}" required>
                     </div>
                 </div>
 
@@ -40,8 +39,9 @@
                             <span class="input-group-text">{{ route('home') }}/landing/</span>
                             <input type="text" class="form-control" name="slug" value="{{ $page->slug }}" required>
                         </div>
-                        <small
-                            class="form-text text-muted">{{ translate('Use only letters, numbers, and hyphens.') }}</small>
+                        <small class="form-text text-muted">
+                            {{ translate('Use only letters, numbers, and hyphens.') }}
+                        </small>
                     </div>
                 </div>
 
@@ -49,9 +49,9 @@
                 <div class="form-group row">
                     <label class="col-sm-2 col-from-label">{{ translate('Content') }} <span class="text-danger">*</span></label>
                     <div class="col-sm-10">
-                    <textarea class="aiz-text-editor form-control" name="content" required
-                              data-buttons='[["font", ["bold","underline","italic","clear"]],["para",["ul","ol","paragraph"]],["insert",["link","picture","video"]],["view",["fullscreen","codeview","undo","redo"]]]'
-                              data-min-height="300">{!! $page->getTranslation('content',$lang) !!}</textarea>
+                        <textarea class="aiz-text-editor form-control" name="content" required
+                                  data-buttons='[["font", ["bold","underline","italic","clear"]],["para",["ul","ol","paragraph"]],["insert",["link","picture","video"]],["view",["fullscreen","codeview","undo","redo"]]]'
+                                  data-min-height="300">{!! $page->description !!}</textarea>
                     </div>
                 </div>
 
@@ -59,16 +59,21 @@
                 <div class="form-group row">
                     <label class="col-sm-2 col-from-label">{{ translate('Product') }}</label>
                     <div class="col-sm-10">
-                        <select class="form-control aiz-selectpicker" name="product_id" data-live-search="true"
+                        <select class="form-control aiz-selectpicker"
+                                name="product_id"
+                                data-live-search="true"
                                 required>
                             <option value="">{{ translate('Select a product') }}</option>
                             @foreach($products as $product)
-                                <option
-                                    value="{{ $product->id }}" {{ $page->product_id == $product->id ? 'selected' : '' }}>
+                                <option value="{{ $product->id }}"
+                                    {{ $page->product_id == $product->id ? 'selected' : '' }}>
                                     {{ $product->name }} ({{ $product->slug }})
                                 </option>
                             @endforeach
                         </select>
+                        <small class="form-text text-muted">
+                            {{ translate('Only one product can be assigned to this landing page.') }}
+                        </small>
                     </div>
                 </div>
 

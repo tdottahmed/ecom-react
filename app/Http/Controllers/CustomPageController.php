@@ -65,16 +65,16 @@ class CustomPageController extends Controller
     public function edit(Request $request, $id)
     {
         $page = CustomPage::where('id', $id)->orWhere('slug', $id)->firstOrFail();
-        $lang = $request->get('lang', app()->getLocale());
         $products = Product::select('id', 'name', 'slug')->latest()->limit(200)->get();
-        $selectedProducts = $page->products()->pluck('products.id')->all();
+        $selectedProducts = $page->product->pluck('products.id')->all();
 
-        return view('backend.custom-landing-page.edit', compact('page', 'lang', 'products', 'selectedProducts'));
+        return view('backend.custom-landing-page.edit', compact('page', 'products', 'selectedProducts'));
     }
 
     public function update(Request $request, $id)
     {
         $page = CustomPage::findOrFail($id);
+        $product = Product::findOrFail($page->product_id);
 
         $request->validate([
             'title' => ['required', 'string'],
@@ -89,36 +89,25 @@ class CustomPageController extends Controller
             'meta_description' => ['nullable', 'string'],
             'keywords' => ['nullable', 'string'],
             'meta_image' => ['nullable', 'string'],
-            'product_ids' => ['nullable', 'array'],
-            'product_ids.*' => ['integer', 'exists:products,id'],
+            'product_id' => ['nullable', 'integer', 'exists:products,id'],
         ]);
 
-        $lang = $request->get('lang', app()->getLocale());
-
-        // For translatable fields: set translation for current language if applicable
-        if (method_exists($page, 'setTranslation')) {
-            $page->setTranslation('title', $lang, $request->input('title'));
-            $page->setTranslation('content', $lang, $request->input('content'));
-        } else {
-            // fallback: plain strings
-            $page->title = $request->input('title');
-            $page->content = $request->input('content');
-        }
+        // Basic fields
+        $page->title = $request->input('title');
+        $page->description = $request->input('content');
 
         if ($page->type === 'custom_page' && $request->filled('slug')) {
             $page->slug = $request->input('slug');
         }
+        $this->generateMetaFields($page, $product);
+        // Active status
+        $page->is_active = $request->boolean('is_active', $page->is_active);
 
-        $page->meta_title = $request->input('meta_title');
-        $page->meta_description = $request->input('meta_description');
-        $page->keywords = $request->input('keywords');
-        $page->meta_image = $request->input('meta_image');
-        $page->is_active = (bool) $request->boolean('is_active', $page->is_active);
+        // Assign single product
+        $page->product_id = $request->input('product_id');
         $page->save();
 
-        $page->products()->sync($request->input('product_ids', []));
-
-        return back()->with('success', translate('Custom page updated successfully'));
+        return back()->with('success', 'Custom page updated successfully');
     }
 
     public function destroy($id)
@@ -159,8 +148,7 @@ class CustomPageController extends Controller
         }
         $page = CustomPage::where('slug', $slug)->first();
 
-        $detailedProduct = Product::with('reviews', 'brand', 'stocks', 'user', 'user.shop')->where('auction_product',
-            0)->find($page->product_id)->where('approved', 1)->first();
+        $detailedProduct = Product::with('reviews', 'brand', 'stocks', 'user', 'user.shop')->find($page->product_id);
 
         if ($detailedProduct != null && $detailedProduct->published) {
             if ((get_setting('vendor_system_activation') != 1) && $detailedProduct->added_by == 'seller') {
@@ -206,8 +194,9 @@ class CustomPageController extends Controller
                 lastViewedProducts($detailedProduct->id, auth()->user()->id);
             }
 
-            return view('frontend.product-landing',
-                compact('detailedProduct', 'product_queries', 'total_query', 'reviews', 'review_status', 'country'));
+            return view('frontend.product-landing.index',
+                compact('detailedProduct', 'product_queries', 'total_query', 'reviews', 'review_status', 'country',
+                    'page'));
         }
         abort(404);
     }
