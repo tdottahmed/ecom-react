@@ -78,7 +78,9 @@ Route::controller(UpdateController::class)->group(function () {
 });
 
 Route::get('/admin', [AdminController::class, 'admin_dashboard'])->name('admin.dashboard')->middleware([
-    'auth', 'admin', 'prevent-back-history'
+    'auth',
+    'admin',
+    'prevent-back-history'
 ]);
 Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-back-history']], function () {
 
@@ -97,12 +99,16 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
 
         //category-wise commission
         Route::get('/categories-wise-commission', 'categoriesWiseCommission')->name('categories_wise_commission');
-        Route::post('/categories-wise-commission',
-            'categoriesWiseCommissionUpdate')->name('categories_wise_commission.update');
+        Route::post(
+            '/categories-wise-commission',
+            'categoriesWiseCommissionUpdate'
+        )->name('categories_wise_commission.update');
 
         // category-wise discount set
-        Route::get('/categories-wise-product-discount',
-            'categoriesWiseProductDiscount')->name('categories_wise_product_discount');
+        Route::get(
+            '/categories-wise-product-discount',
+            'categoriesWiseProductDiscount'
+        )->name('categories_wise_product_discount');
     });
 
     // Brand
@@ -125,15 +131,23 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     });
 
     Route::controller(AdminController::class)->group(function () {
-        Route::post('/dashboard/top-category-products-section',
-            'top_category_products_section')->name('dashboard.top_category_products_section');
+        Route::post(
+            '/dashboard/top-category-products-section',
+            'top_category_products_section'
+        )->name('dashboard.top_category_products_section');
         Route::post('/dashboard/inhouse-top-brands', 'inhouse_top_brands')->name('dashboard.inhouse_top_brands');
-        Route::post('/dashboard/inhouse-top-categories',
-            'inhouse_top_categories')->name('dashboard.inhouse_top_categories');
-        Route::post('/dashboard/top-sellers-products-section',
-            'top_sellers_products_section')->name('dashboard.top_sellers_products_section');
-        Route::post('/dashboard/top-brands-products-section',
-            'top_brands_products_section')->name('dashboard.top_brands_products_section');
+        Route::post(
+            '/dashboard/inhouse-top-categories',
+            'inhouse_top_categories'
+        )->name('dashboard.inhouse_top_categories');
+        Route::post(
+            '/dashboard/top-sellers-products-section',
+            'top_sellers_products_section'
+        )->name('dashboard.top_sellers_products_section');
+        Route::post(
+            '/dashboard/top-brands-products-section',
+            'top_brands_products_section'
+        )->name('dashboard.top_brands_products_section');
     });
 
     // Products
@@ -150,16 +164,20 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         Route::post('/products/featured', 'updateFeatured')->name('products.featured');
         Route::post('/products/published', 'updatePublished')->name('products.published');
         Route::post('/products/approved', 'updateProductApproval')->name('products.approved');
-        Route::post('/products/get_products_by_subcategory',
-            'get_products_by_subcategory')->name('products.get_products_by_subcategory');
+        Route::post(
+            '/products/get_products_by_subcategory',
+            'get_products_by_subcategory'
+        )->name('products.get_products_by_subcategory');
         Route::get('/products/duplicate/{id}', 'duplicate')->name('products.duplicate');
         Route::get('/products/destroy/{id}', 'destroy')->name('products.destroy');
         Route::post('/bulk-product-delete', 'bulk_product_delete')->name('bulk-product-delete');
 
         Route::post('/products/sku_combination', 'sku_combination')->name('products.sku_combination');
         Route::post('/products/sku_combination_edit', 'sku_combination_edit')->name('products.sku_combination_edit');
-        Route::post('/products/add-more-choice-option',
-            'add_more_choice_option')->name('products.add-more-choice-option');
+        Route::post(
+            '/products/add-more-choice-option',
+            'add_more_choice_option'
+        )->name('products.add-more-choice-option');
         Route::post('/product-search', 'product_search')->name('product.search');
         Route::post('/get-selected-products', 'get_selected_products')->name('get-selected-products');
         Route::post('/set-product-discount', 'setProductDiscount')->name('set_product_discount');
@@ -181,8 +199,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         Route::get('/product-bulk-upload/index', 'index')->name('product_bulk_upload.index');
         Route::post('/bulk-product-upload', 'bulk_upload')->name('bulk_product_upload');
         Route::get('/product-csv-download/{type}', 'import_product')->name('product_csv.download');
-        Route::get('/vendor-product-csv-download/{id}',
-            'import_vendor_product')->name('import_vendor_product.download');
+        Route::get(
+            '/vendor-product-csv-download/{id}',
+            'import_vendor_product'
+        )->name('import_vendor_product.download');
         Route::group(['prefix' => 'bulk-upload/download'], function () {
             Route::get('/category', 'pdf_download_category')->name('pdf.download_category');
             Route::get('/brand', 'pdf_download_brand')->name('pdf.download_brand');
@@ -206,8 +226,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         Route::get('sellers_ban/{id}', 'ban')->name('sellers.ban');
         Route::get('/sellers/destroy/{id}', 'destroy')->name('sellers.destroy');
         Route::post('/bulk-seller-delete', 'bulk_seller_delete')->name('bulk-seller-delete');
-        Route::get('/sellers/view/{id}/verification',
-            'show_verification_request')->name('sellers.show_verification_request');
+        Route::get(
+            '/sellers/view/{id}/verification',
+            'show_verification_request'
+        )->name('sellers.show_verification_request');
         Route::get('/sellers/approve/{id}', 'approve_seller')->name('sellers.approve');
         Route::get('/sellers/reject/{id}', 'reject_seller')->name('sellers.reject');
         Route::get('/sellers/login/{id}', 'login')->name('sellers.login');
@@ -217,8 +239,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         Route::get('/seller-based-commission', 'sellerBasedCommission')->name('seller_based_commission');
         Route::post('/set-seller-based-commission', 'setSellerCommission')->name('set_seller_commission');
         Route::post('/sellers/set-commission', 'setSellerBasedCommission')->name('set_seller_based_commission');
-        Route::post('/sellers/edit-custom-followers',
-            'editSellerCustomFollowers')->name('edit_Seller_custom_followers');
+        Route::post(
+            '/sellers/edit-custom-followers',
+            'editSellerCustomFollowers'
+        )->name('edit_Seller_custom_followers');
     });
 
     // Seller Payment
@@ -281,8 +305,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     // Business Settings
     Route::controller(BusinessSettingsController::class)->group(function () {
         Route::post('/business-settings/update', 'update')->name('business_settings.update');
-        Route::post('/business-settings/update/activation',
-            'updateActivationSettings')->name('business_settings.update.activation');
+        Route::post(
+            '/business-settings/update/activation',
+            'updateActivationSettings'
+        )->name('business_settings.update.activation');
         Route::post('/payment-activation', 'updatePaymentActivationSettings')->name('payment.activation');
         Route::get('/general-setting', 'general_setting')->name('general_setting.index');
         Route::get('/activation', 'activation')->name('activation.index');
@@ -317,8 +343,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
 
         //Shipping Configuration
         Route::get('/shipping_configuration', 'shipping_configuration')->name('shipping_configuration.index');
-        Route::post('/shipping_configuration/update',
-            'shipping_configuration_update')->name('shipping_configuration.update');
+        Route::post(
+            '/shipping_configuration/update',
+            'shipping_configuration_update'
+        )->name('shipping_configuration.update');
 
         // Order Configuration
         Route::get('/order-configuration', 'order_configuration')->name('order_configuration.index');
@@ -356,8 +384,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         //App Trasnlation
         Route::post('/languages/app-translations/import', 'importEnglishFile')->name('app-translations.import');
         Route::get('/languages/app-translations/show/{id}', 'showAppTranlsationView')->name('app-translations.show');
-        Route::post('/languages/app-translations/key_value_store',
-            'storeAppTranlsation')->name('app-translations.store');
+        Route::post(
+            '/languages/app-translations/key_value_store',
+            'storeAppTranlsation'
+        )->name('app-translations.store');
         Route::get('/languages/app-translations/export/{id}', 'exportARBFile')->name('app-translations.export');
     });
 
@@ -369,8 +399,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
             Route::get('/header', 'header')->name('website.header');
             Route::get('/appearance', 'appearance')->name('website.appearance');
             Route::get('/select-homepage', 'select_homepage')->name('website.select-homepage');
-            Route::get('/authentication-layout-settings',
-                'authentication_layout_settings')->name('website.authentication-layout-settings');
+            Route::get(
+                '/authentication-layout-settings',
+                'authentication_layout_settings'
+            )->name('website.authentication-layout-settings');
             Route::get('/pages', 'pages')->name('website.pages');
         });
 
@@ -381,7 +413,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
             Route::get('/custom-pages/destroy/{id}', 'destroy')->name('custom-pages.destroy');
         });
 
-//        Custom Landing Page
+        //        Custom Landing Page
         Route::resource('custom-landing-pages', \App\Http\Controllers\CustomPageController::class);
     });
 
@@ -407,8 +439,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         Route::post('/flash_deals/update_status', 'update_status')->name('flash_deals.update_status');
         Route::post('/flash_deals/update_featured', 'update_featured')->name('flash_deals.update_featured');
         Route::post('/flash_deals/product_discount', 'product_discount')->name('flash_deals.product_discount');
-        Route::post('/flash_deals/product_discount_edit',
-            'product_discount_edit')->name('flash_deals.product_discount_edit');
+        Route::post(
+            '/flash_deals/product_discount_edit',
+            'product_discount_edit'
+        )->name('flash_deals.product_discount_edit');
     });
 
     //Subscribers
@@ -425,10 +459,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         Route::get('/inhouse-orders', 'all_orders')->name('inhouse_orders.index');
         Route::get('/seller_orders', 'all_orders')->name('seller_orders.index');
         Route::get('/orders_by_pickup_point', 'all_orders')->name('pick_up_point.index');
-        Route::get('/courier_orders', 'courierOrders')->name('courier_orders.index');
+        Route::get('/courier-orders', 'courierOrders')->name('courier_orders.index');
         Route::get('/check-fraud/{order_id}', 'checkFraud')->name('order.checkFraud');
-        Route::post('/order/courier_order', 'orderCourier')->name('order.courier');
-        Route::get('/unpaid_orders', 'all_orders')->name('unpaid_orders.index');
+        Route::post('/order/courier-order', 'orderCourier')->name('order.courier');
+        Route::get('/unpaid-orders', 'all_orders')->name('unpaid_orders.index');
 
         Route::get('/orders/{id}/show', 'show')->name('all_orders.show');
         Route::get('/inhouse-orders/{id}/show', 'show')->name('inhouse_orders.show');
@@ -453,8 +487,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         Route::get('/order-bulk-export', 'orderBulkExport')->name('order-bulk-export');
 
         //
-        Route::post('order-payment-notification',
-            'unpaid_order_payment_notification_send')->name('unpaid_order_payment_notification');
+        Route::post(
+            'order-payment-notification',
+            'unpaid_order_payment_notification_send'
+        )->name('unpaid_order_payment_notification');
     });
 
     Route::post('/pay_to_seller', [CommissionController::class, 'pay_to_seller'])->name('commissions.pay_to_seller');
@@ -472,8 +508,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
 
     // Earning Report
     Route::group(['prefix' => 'reports'], function () {
-        Route::get('/earning-payout-report',
-            [EarningReportController::class, 'index'])->name('earning_payout_report.index');
+        Route::get(
+            '/earning-payout-report',
+            [EarningReportController::class, 'index']
+        )->name('earning_payout_report.index');
         Route::post('/earning-payout-report/net-sales', [EarningReportController::class, 'net_sales']);
         Route::post('/earning-payout-report/payouts', [EarningReportController::class, 'payouts']);
         Route::post('/earning-payout-report/sale-analytic', [EarningReportController::class, 'sale_analytic']);
@@ -483,8 +521,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     //Blog Section
     //Blog cateory
     Route::resource('blog-category', BlogCategoryController::class);
-    Route::get('/blog-category/destroy/{id}',
-        [BlogCategoryController::class, 'destroy'])->name('blog-category.destroy');
+    Route::get(
+        '/blog-category/destroy/{id}',
+        [BlogCategoryController::class, 'destroy']
+    )->name('blog-category.destroy');
 
     // Blog
     Route::resource('blog', BlogController::class);
@@ -514,8 +554,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         Route::get('/custom-review/create/{productId?}', 'customReviewCreate')->name('custom-review.create');
         Route::get('/custom-review/edit/{id}', 'customReviewEdit')->name('custom-review.edit');
         Route::post('/custom-review/update', 'customReviewUpdate')->name('custom-review.update');
-        Route::post('/custom-review/get-products',
-            'getProductByCategory')->name('get-custom-review-product-by-category');
+        Route::post(
+            '/custom-review/get-products',
+            'getProductByCategory'
+        )->name('get-custom-review-product-by-category');
     });
 
     //Support_Ticket
@@ -575,13 +617,17 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     // Size Chart
     Route::resource('size-charts', SizeChartController::class);
     Route::get('/size-charts/destroy/{id}', [SizeChartController::class, 'destroy'])->name('size-charts.destroy');
-    Route::post('size-charts/get-combination',
-        [SizeChartController::class, 'get_combination'])->name('size-charts.get-combination');
+    Route::post(
+        'size-charts/get-combination',
+        [SizeChartController::class, 'get_combination']
+    )->name('size-charts.get-combination');
 
     // Measurement Points
     Route::resource('measurement-points', MeasurementPointsController::class);
-    Route::get('/measurement-points/destroy/{id}',
-        [MeasurementPointsController::class, 'destroy'])->name('measurement-points.destroy');
+    Route::get(
+        '/measurement-points/destroy/{id}',
+        [MeasurementPointsController::class, 'destroy']
+    )->name('measurement-points.destroy');
 
     // Addon
     Route::resource('addons', AddonController::class);
@@ -648,19 +694,27 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         Route::get('/notification-settings', 'notificationSettings')->name('notification.settings');
 
         Route::post('/notifications/bulk-delete', 'bulkDeleteAdmin')->name('admin.notifications.bulk_delete');
-        Route::get('/notification/read-and-redirect/{id}',
-            'readAndRedirect')->name('admin.notification.read-and-redirect');
+        Route::get(
+            '/notification/read-and-redirect/{id}',
+            'readAndRedirect'
+        )->name('admin.notification.read-and-redirect');
 
         Route::get('/custom-notification', 'customNotification')->name('custom_notification');
         Route::post('/custom-notification/send', 'sendCustomNotification')->name('custom_notification.send');
 
         Route::get('/custom-notification/history', 'customNotificationHistory')->name('custom_notification.history');
-        Route::get('/custom-notifications.delete/{identifier}',
-            'customNotificationSingleDelete')->name('custom-notifications.delete');
-        Route::post('/custom-notifications.bulk_delete',
-            'customNotificationBulkDelete')->name('custom-notifications.bulk_delete');
-        Route::post('/custom-notified-customers-list',
-            'customNotifiedCustomersList')->name('custom_notified_customers_list');
+        Route::get(
+            '/custom-notifications.delete/{identifier}',
+            'customNotificationSingleDelete'
+        )->name('custom-notifications.delete');
+        Route::post(
+            '/custom-notifications.bulk_delete',
+            'customNotificationBulkDelete'
+        )->name('custom-notifications.bulk_delete');
+        Route::post(
+            '/custom-notified-customers-list',
+            'customNotifiedCustomersList'
+        )->name('custom_notified_customers_list');
     });
 
     Route::resource('notification-type', NotificationTypeController::class);
@@ -680,8 +734,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     Route::get('/system/sitemap-generator', [AdminController::class, 'SitemapGenerator'])->name('sitemap_generator');
     Route::post('/system/generate-sitemap', [AdminController::class, 'DoSitemapGenerate'])->name('generate_sitemap');
     Route::post('/system/delete-sitemap', [AdminController::class, 'DeleteSitemapFile'])->name('delete_sitemap');
-    Route::post('/system/download-old-sitemap',
-        [AdminController::class, 'DownloadSingleSitemapFile'])->name('download_old_sitemap');
+    Route::post(
+        '/system/download-old-sitemap',
+        [AdminController::class, 'DownloadSingleSitemapFile']
+    )->name('download_old_sitemap');
 });
 
 Route::get('/system/sitemap-item-add/{item}', [AdminController::class, 'SitemapItems'])->name('sitemap_item_add');
