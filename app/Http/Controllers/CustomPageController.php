@@ -48,7 +48,7 @@ class CustomPageController extends Controller
         $page = new CustomPage();
         $page->title = $request->input('title');
         $page->description = $request->input('content'); // ← Keep this
-        $page->url = route('home').'/landing/'.$request->input('url'); // Add prefix
+        $page->url = route('home') . '/landing/' . $request->input('url'); // Add prefix
         $page->slug = $request->input('slug'); // ← assign slug
         $page->product_id = $product->id;
         $page->is_active = $request->boolean('is_active', true);
@@ -113,10 +113,12 @@ class CustomPageController extends Controller
     public function destroy($id)
     {
         $page = CustomPage::findOrFail($id);
-        $page->products()->detach();
+        if ($page->product) {
+            $page->product->delete();
+        }
         $page->delete();
 
-        return redirect()->route('custom-pages.index')->with('success', translate('Custom page deleted successfully'));
+        return redirect()->route('custom-landing-pages.index')->with('success', translate('Custom page deleted successfully'));
     }
 
     public function show($id)
@@ -135,7 +137,7 @@ class CustomPageController extends Controller
 
     protected function generateMetaFields(CustomPage $page, Product $product): void
     {
-        $page->meta_title = $product->name.' | '.config('app.name');
+        $page->meta_title = $product->name . ' | ' . config('app.name');
         $page->meta_description = \Illuminate\Support\Str::limit(strip_tags($product->description), 160);
         $page->meta_image = $product->image ?? null;
     }
@@ -163,20 +165,27 @@ class CustomPageController extends Controller
                 abort(404);
             }
 
-            $product_queries = ProductQuery::where('product_id', $detailedProduct->id)->where('customer_id', '!=',
-                Auth::id())->latest('id')->paginate(3);
+            $product_queries = ProductQuery::where('product_id', $detailedProduct->id)->where(
+                'customer_id',
+                '!=',
+                Auth::id()
+            )->latest('id')->paginate(3);
             $total_query = ProductQuery::where('product_id', $detailedProduct->id)->count();
             $reviews = $detailedProduct->reviews()->where('status', 1)->orderBy('created_at', 'desc')->paginate(3);
 
             // Pagination using Ajax
             if (request()->ajax()) {
                 if ($request->type == 'query') {
-                    return Response::json(View::make('frontend.partials.product_query_pagination',
-                        array('product_queries' => $product_queries))->render());
+                    return Response::json(View::make(
+                        'frontend.partials.product_query_pagination',
+                        array('product_queries' => $product_queries)
+                    )->render());
                 }
                 if ($request->type == 'review') {
-                    return Response::json(View::make('frontend.product_details.reviews',
-                        array('reviews' => $reviews))->render());
+                    return Response::json(View::make(
+                        'frontend.product_details.reviews',
+                        array('reviews' => $reviews)
+                    )->render());
                 }
             }
 
@@ -194,9 +203,18 @@ class CustomPageController extends Controller
                 lastViewedProducts($detailedProduct->id, auth()->user()->id);
             }
 
-            return view('frontend.product-landing.index',
-                compact('detailedProduct', 'product_queries', 'total_query', 'reviews', 'review_status', 'country',
-                    'page'));
+            return view(
+                'frontend.product-landing.index',
+                compact(
+                    'detailedProduct',
+                    'product_queries',
+                    'total_query',
+                    'reviews',
+                    'review_status',
+                    'country',
+                    'page'
+                )
+            );
         }
         abort(404);
     }

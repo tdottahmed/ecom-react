@@ -1,46 +1,46 @@
 <!DOCTYPE html>
 
 @php
-    $rtl = get_session_language()->rtl;
+  $rtl = get_session_language()->rtl;
 @endphp
 
 @if ($rtl == 1)
-    <html dir="rtl" lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    @else
-        <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-        @endif
+  <html dir="rtl" lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+@else
+  <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+@endif
 
-        <head>
+<head>
 
-            <meta name="csrf-token" content="{{ csrf_token() }}">
-            <meta name="app-url" content="{{ getBaseURL() }}">
-            <meta name="file-base-url" content="{{ getFileBaseURL() }}">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="app-url" content="{{ getBaseURL() }}">
+  <meta name="file-base-url" content="{{ getFileBaseURL() }}">
 
-            <title>@yield('meta_title', get_setting('website_name') . ' | ' . get_setting('site_motto'))</title>
+  <title>@yield('meta_title', get_setting('website_name') . ' | ' . get_setting('site_motto'))</title>
 
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <meta name="robots" content="index, follow">
-            <meta name="description" content="@yield('meta_description', get_setting('meta_description'))"/>
-            <meta name="keywords" content="@yield('meta_keywords', get_setting('meta_keywords'))">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="index, follow">
+  <meta name="description" content="@yield('meta_description', get_setting('meta_description'))" />
+  <meta name="keywords" content="@yield('meta_keywords', get_setting('meta_keywords'))">
 
-            @yield('meta')
+  @yield('meta')
 
-            @if (!isset($detailedProduct) && !isset($customer_product) && !isset($shop) && !isset($page) && !isset($blog))
-                @php
-                    $meta_image = uploaded_asset(get_setting('meta_image'));
-                @endphp
-                    <!-- Schema.org markup for Google+ -->
-                <meta itemprop="name" content="{{ get_setting('meta_title') }}">
-                <meta itemprop="description" content="{{ get_setting('meta_description') }}">
-                <meta itemprop="image" content="{{ $meta_image }}">
+  @if (!isset($detailedProduct) && !isset($customer_product) && !isset($shop) && !isset($page) && !isset($blog))
+    @php
+      $meta_image = uploaded_asset(get_setting('meta_image'));
+    @endphp
+    <!-- Schema.org markup for Google+ -->
+    <meta itemprop="name" content="{{ get_setting('meta_title') }}">
+    <meta itemprop="description" content="{{ get_setting('meta_description') }}">
+    <meta itemprop="image" content="{{ $meta_image }}">
 
-                <!-- Twitter Card data -->
-                <meta name="twitter:card" content="product">
-                <meta name="twitter:site" content="@publisher_handle">
-                <meta name="twitter:title" content="{{ get_setting('meta_title') }}">
-                <meta name="twitter:description" content="{{ get_setting('meta_description') }}">
-                <meta name="twitter:creator" content="@author_handle">
+    <!-- Twitter Card data -->
+    <meta name="twitter:card" content="product">
+    <meta name="twitter:site" content="@publisher_handle">
+    <meta name="twitter:title" content="{{ get_setting('meta_title') }}">
+    <meta name="twitter:description" content="{{ get_setting('meta_description') }}">
+    <meta name="twitter:creator" content="@author_handle">
                 <meta name="twitter:image" content="{{ $meta_image }}">
 
                 <!-- Open Graph data -->
@@ -258,7 +258,7 @@
 
         </div>
 
-        @if(get_setting('use_floating_buttons') == 1)
+        @if (get_setting('use_floating_buttons') == 1)
             <!-- Floating Buttons -->
             @include('frontend.inc.floating_buttons')
         @endif
@@ -272,7 +272,7 @@
         </div>
 
 
-        @if (env("DEMO_MODE") == "On")
+        @if (env('DEMO_MODE') == 'On')
             <!-- demo nav -->
             @include('frontend.inc.demo_nav')
         @endif
@@ -286,7 +286,7 @@
 
         <div class="aiz-custom-alert {{ get_setting('custom_alert_location') }}">
             @foreach ($custom_alerts as $custom_alert)
-                @if($custom_alert->id == 1)
+                @if ($custom_alert->id == 1)
                     <div class="aiz-cookie-alert mb-3" style="box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.24);">
                         <div class="p-3 px-lg-2rem rounded-0"
                              style="background: {{ $custom_alert->background_color }};">
@@ -331,7 +331,7 @@
             $dynamic_popups = App\Models\DynamicPopup::where('status', 1)->orderBy('id', 'asc')->get();
         @endphp
         @foreach ($dynamic_popups as $key => $dynamic_popup)
-            @if($dynamic_popup->id == 1)
+            @if ($dynamic_popup->id == 1)
                 <div class="modal website-popup removable-session d-none" data-key="website-popup" data-value="removed">
                     <div class="absolute-full bg-black opacity-60"></div>
                     <div class="modal-dialog modal-dialog-centered modal-dialog-zoom modal-md mx-4 mx-md-auto">
@@ -973,7 +973,7 @@
             }
         </script>
 
-        @if (env("DEMO_MODE") == "On")
+        @if (env('DEMO_MODE') == 'On')
             <script>
                 var demoNav = document.querySelector('.aiz-demo-nav');
                 var menuBtn = document.querySelector('.aiz-demo-nav-toggler');
@@ -1020,15 +1020,13 @@
                         $('header').delay(800).removeClass('z-1').addClass('z-1020');
                     }
                 }
-            </script>
-
-        @endif
+            </script> @endif
 
         @yield('script')
+        @stack('script')
 
-        @php
-            echo get_setting('footer_script');
-        @endphp
+          @php
+echo get_setting('footer_script'); @endphp
 
-        </body>
-        </html>
+          </body>
+          </html>
