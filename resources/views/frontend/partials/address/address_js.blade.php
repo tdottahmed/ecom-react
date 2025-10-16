@@ -62,36 +62,36 @@
     });
   }
 
-  $(document).on('change', '[name=country_id]', function() {
-    var country_id = $(this).val();
-    get_states(country_id);
-  });
+  // $(document).on('change', '[name=country_id]', function() {
+  //   var country_id = $(this).val();
+  //   get_states(country_id);
+  // });
 
   $(document).on('change', '[name=state_id]', function() {
     var state_id = $(this).val();
     get_city(state_id);
   });
 
-  function get_states(country_id) {
-    $('[name="state_id"]').html("");
-    $.ajax({
-      headers: {
-        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-      },
-      url: "{{ route('get-state') }}",
-      type: 'POST',
-      data: {
-        country_id: country_id
-      },
-      success: function(response) {
-        var obj = JSON.parse(response);
-        if (obj != '') {
-          $('[name="state_id"]').html(obj);
-          AIZ.plugins.bootstrapSelect('refresh');
-        }
-      }
-    });
-  }
+  // function get_states(country_id) {
+  //   $('[name="state_id"]').html("");
+  //   $.ajax({
+  //     headers: {
+  //       'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+  //     },
+  //     url: "{{ route('get-state') }}",
+  //     type: 'POST',
+  //     data: {
+  //       country_id: country_id
+  //     },
+  //     success: function(response) {
+  //       var obj = JSON.parse(response);
+  //       if (obj != '') {
+  //         $('[name="state_id"]').html(obj);
+  //         AIZ.plugins.bootstrapSelect('refresh');
+  //       }
+  //     }
+  //   });
+  // }
 
   function get_city(state_id) {
     $('[name="city_id"]').html("");
