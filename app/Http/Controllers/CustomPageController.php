@@ -77,34 +77,24 @@ class CustomPageController extends Controller
         $product = Product::findOrFail($page->product_id);
 
         $request->validate([
-            'title' => ['required', 'string'],
-            'slug' => [
-                'nullable',
-                'alpha_dash',
-                'max:190',
-                Rule::unique('custom_pages', 'slug')->ignore($page->id),
-            ],
+            'title' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string'],
-            'meta_title' => ['nullable', 'string', 'max:255'],
-            'meta_description' => ['nullable', 'string'],
-            'keywords' => ['nullable', 'string'],
-            'meta_image' => ['nullable', 'string'],
-            'product_id' => ['nullable', 'integer', 'exists:products,id'],
+            'url' => ['required', 'string', 'max:190', 'unique:custom_pages,url,' . $id],
+            'slug' => ['required', 'string', 'max:190', 'unique:custom_pages,slug,' . $id],
+            'product_id' => ['required', 'integer', 'exists:products,id'],
+            'is_active' => ['nullable', 'boolean'],
         ]);
+        
 
         // Basic fields
         $page->title = $request->input('title');
         $page->description = $request->input('content');
-
-        if ($page->type === 'custom_page' && $request->filled('slug')) {
-            $page->slug = $request->input('slug');
-        }
-        $this->generateMetaFields($page, $product);
-        // Active status
+        $page->url = route('home') . '/landing/' . $request->input('url'); // Add prefix like store method
+        $page->slug = $request->input('slug'); // Always update slug (remove conditional)
+        $page->product_id = $request->input('product_id');
         $page->is_active = $request->boolean('is_active', $page->is_active);
 
-        // Assign single product
-        $page->product_id = $request->input('product_id');
+        $this->generateMetaFields($page, $product);
         $page->save();
 
         return back()->with('success', 'Custom page updated successfully');
