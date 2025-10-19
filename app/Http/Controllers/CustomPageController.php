@@ -78,18 +78,17 @@ class CustomPageController extends Controller
 
         $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'content' => ['required', 'string'],
-            'url' => ['required', 'string', 'max:190', 'unique:custom_pages,url,' . $id],
-            'slug' => ['required', 'string', 'max:190', 'unique:custom_pages,slug,' . $id],
-            'product_id' => ['required', 'integer', 'exists:products,id'],
-            'is_active' => ['nullable', 'boolean'],
+            'content' => ['required', 'string'], // ← Keep this
+            'slug' => ['required', 'string', 'max:190'],
+            'product_id' => ['required'],
+            'is_active' => ['nullable'],
         ]);
-        
+
 
         // Basic fields
         $page->title = $request->input('title');
         $page->description = $request->input('content');
-        $page->url = route('home') . '/landing/' . $request->input('url'); // Add prefix like store method
+        $page->url = route('home') . '/landing/' . $request->input('slug'); // Add prefix like store method
         $page->slug = $request->input('slug'); // Always update slug (remove conditional)
         $page->product_id = $request->input('product_id');
         $page->is_active = $request->boolean('is_active', $page->is_active);
@@ -97,7 +96,7 @@ class CustomPageController extends Controller
         $this->generateMetaFields($page, $product);
         $page->save();
 
-        return back()->with('success', 'Custom page updated successfully');
+        return redirect()->route('custom-landing-pages.index')->with('success', 'Custom page updated successfully');
     }
 
     public function destroy($id)

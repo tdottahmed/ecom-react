@@ -14,6 +14,7 @@ use App\Models\CouponUsage;
 use App\Models\Order;
 use App\Models\OrderDetail;
 use App\Models\Product;
+use App\Models\ProductStock;
 use App\Models\State;
 use App\Models\User;
 use App\Utility\EmailUtility;
@@ -86,8 +87,10 @@ class CheckoutController extends Controller
             if (get_setting('shipping_type') == 'carrier_wise_shipping') {
                 $default_shipping_type = 'carrier';
                 // $zone = $country_id != 0 ? Country::where('id', $country_id)->first()->zone_id : 0;
-                $zone = $country_id != 0 ? Country::where('id', $country_id)->where('status',
-                    1)->first()->zone_id ?? 0 : 0;
+                $zone = $country_id != 0 ? Country::where('id', $country_id)->where(
+                    'status',
+                    1
+                )->first()->zone_id ?? 0 : 0;
 
                 $carrier_query = Carrier::where('status', 1);
                 $carrier_query->whereIn('id', function ($query) use ($zone) {
@@ -107,8 +110,12 @@ class CheckoutController extends Controller
                 $subtotal += cart_product_price($cartItem, $product, false, false) * $cartItem['quantity'];
 
                 if (get_setting('shipping_type') == 'carrier_wise_shipping') {
-                    $cartItem['shipping_cost'] = $country_id != 0 ? getShippingCost($carts, $key, $shipping_info,
-                        $default_carrier_id) : 0;
+                    $cartItem['shipping_cost'] = $country_id != 0 ? getShippingCost(
+                        $carts,
+                        $key,
+                        $shipping_info,
+                        $default_carrier_id
+                    ) : 0;
                 } else {
                     $cartItem['shipping_cost'] = getShippingCost($carts, $key, $shipping_info);
                 }
@@ -178,8 +185,11 @@ class CheckoutController extends Controller
         $request->session()->put('payment_data', $data);
         if ($request->session()->get('combined_order_id') != null) {
             // If block for Online payment, wallet and cash on delivery. Else block for Offline payment
-            $decorator = __NAMESPACE__.'\\Payment\\'.str_replace(' ', '',
-                    ucwords(str_replace('_', ' ', $request->payment_option)))."Controller";
+            $decorator = __NAMESPACE__ . '\\Payment\\' . str_replace(
+                ' ',
+                '',
+                ucwords(str_replace('_', ' ', $request->payment_option))
+            ) . "Controller";
             if (class_exists($decorator)) {
                 return (new $decorator)->pay($request);
             } else {
@@ -225,7 +235,7 @@ class CheckoutController extends Controller
         $user = new User();
         $user->name = $guest_shipping_info['name'];
         $user->email = $guest_shipping_info['email'];
-        $user->phone = addon_is_activated('otp_system') ? '+'.$guest_shipping_info['country_code'].$guest_shipping_info['phone'] : null;
+        $user->phone = addon_is_activated('otp_system') ? '+' . $guest_shipping_info['country_code'] . $guest_shipping_info['phone'] : null;
         $user->password = Hash::make($password);
         $user->email_verified_at = $isEmailVerificationEnabled != 1 ? date('Y-m-d H:m:s') : null;
         $user->save();
@@ -263,7 +273,7 @@ class CheckoutController extends Controller
         $address->state_id = $guest_shipping_info['state_id'];
         $address->city_id = $guest_shipping_info['city_id'];
         $address->postal_code = isset($guest_shipping_info['postal_code']) ? $guest_shipping_info['postal_code'] : null;
-        $address->phone = isset($guest_shipping_info['country_code']) ? '+'.$guest_shipping_info['country_code'].$guest_shipping_info['phone'] : $guest_shipping_info['phone'];
+        $address->phone = isset($guest_shipping_info['country_code']) ? '+' . $guest_shipping_info['country_code'] . $guest_shipping_info['phone'] : $guest_shipping_info['phone'];
         $address->longitude = isset($guest_shipping_info['longitude']) ? $guest_shipping_info['longitude'] : null;
         $address->latitude = isset($guest_shipping_info['latitude']) ? $guest_shipping_info['latitude'] : null;
         $address->save();
@@ -390,7 +400,7 @@ class CheckoutController extends Controller
                 $shipping_info['state_id'] = $request->state_id;
                 $shipping_info['city_id'] = $request->city_id;
                 $shipping_info['postal_code'] = $request->postal_code ?? null; // optional
-                $shipping_info['phone'] = '+'.$request->country_code.$request->phone;
+                $shipping_info['phone'] = '+' . $request->country_code . $request->phone;
                 $shipping_info['longitude'] = $request->longitude;
                 $shipping_info['latitude'] = $request->latitude;
 
@@ -438,8 +448,7 @@ class CheckoutController extends Controller
         $authUser = auth()->user();
         $tempUser = $request->session()->has('temp_user_id') ? $request->session()->get('temp_user_id') : null;
         $carts = auth()->user() != null ?
-            Cart::where('user_id', $authUser->id)->get() :
-            ($tempUser != null ? Cart::where('temp_user_id', $request->session()->get('temp_user_id'))->get() : null);
+            Cart::where('user_id', $authUser->id)->get() : ($tempUser != null ? Cart::where('temp_user_id', $request->session()->get('temp_user_id'))->get() : null);
 
         if ($carts->isEmpty()) {
             flash(translate('Your cart is empty'))->warning();
@@ -470,10 +479,10 @@ class CheckoutController extends Controller
                 $tax += cart_product_tax($cartItem, $product, false) * $cartItem['quantity'];
                 $subtotal += cart_product_price($cartItem, $product, false, false) * $cartItem['quantity'];
 
-                if (get_setting('shipping_type') != 'carrier_wise_shipping' || $request['shipping_type_'.$product->user_id] == 'pickup_point') {
-                    if ($request['shipping_type_'.$product->user_id] == 'pickup_point') {
+                if (get_setting('shipping_type') != 'carrier_wise_shipping' || $request['shipping_type_' . $product->user_id] == 'pickup_point') {
+                    if ($request['shipping_type_' . $product->user_id] == 'pickup_point') {
                         $cartItem['shipping_type'] = 'pickup_point';
-                        $cartItem['pickup_point'] = $request['pickup_point_id_'.$product->user_id];
+                        $cartItem['pickup_point'] = $request['pickup_point_id_' . $product->user_id];
                     } else {
                         $cartItem['shipping_type'] = 'home_delivery';
                     }
@@ -483,7 +492,7 @@ class CheckoutController extends Controller
                     }
                 } else {
                     $cartItem['shipping_type'] = 'carrier';
-                    $cartItem['carrier_id'] = $request['carrier_id_'.$product->user_id];
+                    $cartItem['carrier_id'] = $request['carrier_id_' . $product->user_id];
                     $cartItem['shipping_cost'] = getShippingCost($carts, $key, $deliveryInfo, $cartItem['carrier_id']);
                 }
 
@@ -535,8 +544,10 @@ class CheckoutController extends Controller
                 }
             }
             if ($validationDateCheckCondition) {
-                if (($user == null && Session::has('temp_user_id')) || CouponUsage::where('user_id',
-                        $user->id)->where('coupon_id', $coupon->id)->first() == null) {
+                if (($user == null && Session::has('temp_user_id')) || CouponUsage::where(
+                    'user_id',
+                    $user->id
+                )->where('coupon_id', $coupon->id)->first() == null) {
                     $coupon_details = json_decode($coupon->details);
 
                     $user_carts = $user != null ?
@@ -574,8 +585,12 @@ class CheckoutController extends Controller
                             foreach ($coupon_details as $key => $coupon_detail) {
                                 if ($coupon_detail->product_id == $cartItem['product_id']) {
                                     if ($coupon->discount_type == 'percent') {
-                                        $coupon_discount += (cart_product_price($cartItem, $product, false,
-                                                    false) * $coupon->discount / 100) * $cartItem['quantity'];
+                                        $coupon_discount += (cart_product_price(
+                                            $cartItem,
+                                            $product,
+                                            false,
+                                            false
+                                        ) * $coupon->discount / 100) * $cartItem['quantity'];
                                     } elseif ($coupon->discount_type == 'amount') {
                                         $coupon_discount += $coupon->discount * $cartItem['quantity'];
                                     }
@@ -670,7 +685,7 @@ class CheckoutController extends Controller
     public function guestCustomerInfoCheck(Request $request)
     {
         $user = addon_is_activated('otp_system') ?
-            User::where('email', $request->email)->orWhere('phone', '+'.$request->phone)->first() :
+            User::where('email', $request->email)->orWhere('phone', '+' . $request->phone)->first() :
             User::where('email', $request->email)->first();
         return ($user != null) ? true : false;
     }
@@ -702,8 +717,10 @@ class CheckoutController extends Controller
         if (get_setting('shipping_type') == 'carrier_wise_shipping') {
             $default_shipping_type = 'carrier';
             //$zone = Country::where('id', $country_id)->first()->zone_id;
-            $zone = $country_id != 0 ? Country::where('id', $country_id)->where('status',
-                1)->first()?->zone_id ?? 0 : 0;
+            $zone = $country_id != 0 ? Country::where('id', $country_id)->where(
+                'status',
+                1
+            )->first()?->zone_id ?? 0 : 0;
 
             $carrier_query = Carrier::where('status', 1);
             $carrier_query->whereIn('id', function ($query) use ($zone) {
@@ -734,8 +751,10 @@ class CheckoutController extends Controller
         $carts = $carts->fresh();
 
         return array(
-            'delivery_info' => view('frontend.partials.cart.delivery_info',
-                compact('carts', 'carrier_list', 'shipping_info'))->render(),
+            'delivery_info' => view(
+                'frontend.partials.cart.delivery_info',
+                compact('carts', 'carrier_list', 'shipping_info')
+            )->render(),
             'cart_summary' => view('frontend.partials.cart.cart_summary', compact('carts', 'proceed'))->render(),
             'carrier_count' => count($carrier_list)
         );
@@ -779,8 +798,12 @@ class CheckoutController extends Controller
             } else {
                 $cartItem['shipping_type'] = 'carrier';
                 $cartItem['carrier_id'] = $request->type_id;
-                $cartItem['shipping_cost'] = getShippingCost($user_carts, $key, $shipping_info,
-                    $cartItem['carrier_id']);
+                $cartItem['shipping_cost'] = getShippingCost(
+                    $user_carts,
+                    $key,
+                    $shipping_info,
+                    $cartItem['carrier_id']
+                );
             }
 
             $cartItem->save();
@@ -801,8 +824,11 @@ class CheckoutController extends Controller
             $request->session()->put('payment_data', $data);
 
             // If block for Online payment, wallet and cash on delivery. Else block for Offline payment
-            $decorator = __NAMESPACE__.'\\Payment\\'.str_replace(' ', '',
-                    ucwords(str_replace('_', ' ', $request->payment_option)))."Controller";
+            $decorator = __NAMESPACE__ . '\\Payment\\' . str_replace(
+                ' ',
+                '',
+                ucwords(str_replace('_', ' ', $request->payment_option))
+            ) . "Controller";
             if (class_exists($decorator)) {
                 return (new $decorator)->pay($request);
             } else {
@@ -850,6 +876,7 @@ class CheckoutController extends Controller
 
     public function guestCheckout(Request $request)
     {
+        dd($request->all());
         // Validate guest information
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
@@ -958,7 +985,7 @@ class CheckoutController extends Controller
             $grand_total = $subtotal + $tax + $cart->shipping_cost;
 
             $order->grand_total = $grand_total;
-            $order->code = date('Ymd-His').rand(10, 99);
+            $order->code = date('Ymd-His') . rand(10, 99);
             $order->date = strtotime(date('Y-m-d H:i:s'));
             $order->save();
 
@@ -985,7 +1012,7 @@ class CheckoutController extends Controller
                 try {
                     $this->sendGuestOrderEmail($order, $user);
                 } catch (\Exception $e) {
-                    \Log::error('Guest order email failed: '.$e->getMessage());
+                    \Log::error('Guest order email failed: ' . $e->getMessage());
                 }
                 return redirect()->route('guest_order.confirmed', ['order_id' => encrypt($order->id)]);
             } else {
@@ -993,8 +1020,11 @@ class CheckoutController extends Controller
                 $request->session()->put('guest_order_id', $order->id);
                 $request->session()->put('guest_user_id', $user->id);
 
-                $decorator = __NAMESPACE__.'\\Payment\\'.str_replace(' ', '',
-                        ucwords(str_replace('_', ' ', $request->payment_method)))."Controller";
+                $decorator = __NAMESPACE__ . '\\Payment\\' . str_replace(
+                    ' ',
+                    '',
+                    ucwords(str_replace('_', ' ', $request->payment_method))
+                ) . "Controller";
 
                 if (class_exists($decorator)) {
                     return (new $decorator)->pay($request);
@@ -1005,15 +1035,232 @@ class CheckoutController extends Controller
                     ], 400);
                 }
             }
-
         } catch (\Exception $e) {
-            \Log::error('Guest checkout error: '.$e->getMessage());
+            \Log::error('Guest checkout error: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
                 'message' => translate('An error occurred during checkout. Please try again.')
             ], 500);
         }
+    }
+
+    public function guestEasyCheckout(Request $request)
+    {
+        // Validate guest information
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'phone' => 'required|max:20',
+            'address' => 'required|string|max:500',
+            'country_id' => 'required|exists:countries,id',
+            'state_id' => 'required|exists:states,id',
+            'city_id' => 'exists:cities,id',
+            'district' => 'required|string',
+            'product_id' => 'required|exists:products,id',
+            'variant_id' => 'nullable|exists:product_stocks,id',
+            'quantity' => 'required|integer|min:1',
+            'payment_method' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // try {
+        // Get product and check variant stock
+        $product = Product::findOrFail($request->product_id);
+        $variant = null;
+        $product_price = $product->unit_price;
+        $product_tax = $product->tax ?? 0;
+
+        // Handle variant if provided
+        if ($request->has('variant_id') && $request->variant_id) {
+            $variant = ProductStock::where('id', $request->variant_id)
+                ->where('product_id', $product->id)
+                ->first();
+
+            if (!$variant) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected variant not available'
+                ], 400);
+            }
+
+            // Check variant stock
+            if ($variant->qty < $request->quantity) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Insufficient stock for selected variant'
+                ], 400);
+            }
+
+            // Use variant price if available, otherwise product price
+            $product_price = $variant->price ?? $product->unit_price;
+        } else {
+            // Check product stock for non-variant product
+            if ($product->current_stock < $request->quantity) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Insufficient stock for this product'
+                ], 400);
+            }
+        }
+
+        // Create a new user for guest (always create new)
+        $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            $user = new User();
+            $user->name = $request->name;
+            $user->email = $request->email;
+            $user->phone = $request->phone;
+            $user->user_type = 'customer';
+            $user->password = Hash::make(Str::random(10));
+            $user->email_verified_at = date('Y-m-d H:i:s');
+            $user->save();
+        }
+
+        // Get country, state, and city names
+        $country = Country::find($request->country_id);
+        $state = State::find($request->state_id);
+        $city = City::find($request->city_id);
+
+        // Create shipping address in JSON format
+        $shippingAddress = json_encode([
+            'name' => $request->name,
+            'email' => $request->email,
+            'address' => $request->address,
+            'country' => $country ? $country->name : '',
+            'state' => $state ? $state->name : '',
+            'city' => $city ? $city->name : '',
+            'district' => $request->district,
+            'phone' => $request->phone,
+            'postal_code' => 'N/A'
+        ]);
+
+        // Calculate shipping cost based on district
+        $shippingCost = $request->district == 'outside-dhaka' ? 120 : 60;
+
+        // Create cart item (for record keeping)
+        $cart = new Cart();
+        $cart->user_id = $user->id;
+        $cart->product_id = $request->product_id;
+        $cart->owner_id = $product->user_id;
+        $cart->variation = $variant ? $variant->variant : '';
+        $cart->price = $product_price;
+        $cart->tax = $product_tax;
+        $cart->shipping_type = 'home_delivery';
+        $cart->shipping_cost = $shippingCost;
+        $cart->quantity = $request->quantity;
+        $cart->save();
+
+        // Create order
+        $order = new Order();
+        $order->user_id = $user->id;
+        $order->shipping_address = $shippingAddress;
+        $order->payment_type = $request->payment_method;
+        $order->payment_status = 'unpaid';
+        $order->delivery_viewed = '0';
+        $order->payment_status_viewed = '0';
+
+        // Calculate order total
+        $subtotal = $product_price * $request->quantity;
+        $tax = $product_tax * $request->quantity;
+
+        // Apply discount if any
+        $discount = 0;
+        $single_discount = 0;
+        if ($product->discount > 0) {
+            if ($product->discount_type == 'percent') {
+                $discount = ($subtotal * $product->discount) / 100;
+                $single_discount = ($product_price * $product->discount) / 100;
+            } else {
+                $discount = $product->discount;
+                $single_discount = $product->discount;
+            }
+        }
+        $grand_total = $subtotal + $tax + $shippingCost - $discount;
+
+        $order->grand_total = $grand_total;
+        $order->code = date('Ymd-His') . rand(10, 99);
+        $order->date = strtotime(date('Y-m-d H:i:s'));
+        $order->save();
+
+        // Create order detail
+        $orderDetail = new OrderDetail();
+        $orderDetail->order_id = $order->id;
+        $orderDetail->seller_id = $product->user_id;
+        $orderDetail->product_id = $product->id;
+        $orderDetail->variation = $variant ? $variant->variant : '';
+        $orderDetail->price = $product_price - $single_discount;
+        $orderDetail->tax = $product_tax * $request->quantity;
+        $orderDetail->shipping_type = 'home_delivery';
+        $orderDetail->shipping_cost = $shippingCost;
+        $orderDetail->quantity = $request->quantity;
+        $orderDetail->payment_status = 'unpaid';
+        $orderDetail->delivery_status = 'pending';
+        $orderDetail->save();
+
+        // Update stock
+        if ($variant) {
+            $variant->qty -= $request->quantity;
+            $variant->save();
+            $product->current_stock = ProductStock::where('product_id', $product->id)->sum('qty');
+        } else {
+            // Update product stock
+            $product->current_stock -= $request->quantity;
+        }
+
+        $product->num_of_sale += $request->quantity;
+        $product->save();
+
+        // Update seller stats if seller
+        if ($product->added_by == 'seller' && $product->user->seller != null) {
+            $seller = $product->user->seller;
+            $seller->num_of_sale += $request->quantity;
+            $seller->save();
+        }
+
+        // Handle payment based on method
+        if ($request->payment_method == 'cash_on_delivery') {
+            try {
+                $this->sendGuestOrderEmail($order, $user);
+            } catch (\Exception $e) {
+                \Log::error('Guest order email failed: ' . $e->getMessage());
+            }
+            return redirect()->route('guest_order.confirmed', ['order_id' => encrypt($order->id)]);
+        } else {
+            // Handle other payment methods
+            $request->session()->put('guest_order_id', $order->id);
+            $request->session()->put('guest_user_id', $user->id);
+
+            $decorator = __NAMESPACE__ . '\\Payment\\' . str_replace(
+                ' ',
+                '',
+                ucwords(str_replace('_', ' ', $request->payment_method))
+            ) . "Controller";
+
+            if (class_exists($decorator)) {
+                return (new $decorator)->pay($request);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected payment method is not available'
+                ], 400);
+            }
+        }
+        // } catch (\Exception $e) {
+        //     \Log::error('Guest checkout error: ' . $e->getMessage());
+
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'An error occurred during checkout. Please try again.'
+        //     ], 500);
+        // }
     }
 
     /**
@@ -1025,10 +1272,12 @@ class CheckoutController extends Controller
             return;
         }
         $array['view'] = 'emails.guest_order';
-        $array['subject'] = translate('Your order has been placed').' - '.$order->code;
+        $array['subject'] = translate('Your order has been placed') . ' - ' . $order->code;
         $array['from'] = env('MAIL_FROM_ADDRESS');
-        $array['content'] = translate('Hi {{name}}, Your order has been placed successfully. Please check your order details below.',
-            ['name' => $user->name]);
+        $array['content'] = translate(
+            'Hi {{name}}, Your order has been placed successfully. Please check your order details below.',
+            ['name' => $user->name]
+        );
         $array['order'] = $order;
         $array['user'] = $user;
 
@@ -1036,7 +1285,7 @@ class CheckoutController extends Controller
             Mail::to($user->email)->queue(new EmailTemplate($array));
         } catch (\Exception $e) {
             // Log error but don't break the flow
-            \Log::error('Guest order email error: '.$e->getMessage());
+            \Log::error('Guest order email error: ' . $e->getMessage());
         }
     }
 
@@ -1056,4 +1305,3 @@ class CheckoutController extends Controller
         }
     }
 }
-

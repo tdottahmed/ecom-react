@@ -381,6 +381,7 @@ Route::controller(AddressController::class)->group(function () {
     Route::post('/get-cities', 'getCities')->name('get-city');
 });
 Route::post('/guest-checkout', [CheckoutController::class, 'guestCheckout'])->name('guest.checkout');
+Route::post('/guest-easy-checkout', [CheckoutController::class, 'guestEasyCheckout'])->name('guest.easy_checkout');
 Route::get('/guest-order-confirmed/{order_id}',
     [CheckoutController::class, 'guestOrderConfirmed'])->name('guest_order.confirmed');
 
