@@ -140,6 +140,8 @@ Route::controller(HomeController::class)->group(function () {
 
     //Home Page
     Route::get('/', 'index')->name('home');
+    Route::get('/landing/{slug}',
+        [\App\Http\Controllers\CustomPageController::class, 'frontendShow'])->name('custom-landing-page.frontendShow');
 
     Route::post('/home/section/featured', 'load_featured_section')->name('home.section.featured');
     Route::post('/home/section/category-products',
@@ -378,6 +380,10 @@ Route::controller(AddressController::class)->group(function () {
     Route::post('/get-states', 'getStates')->name('get-state');
     Route::post('/get-cities', 'getCities')->name('get-city');
 });
+Route::post('/guest-checkout', [CheckoutController::class, 'guestCheckout'])->name('guest.checkout');
+Route::post('/guest-easy-checkout', [CheckoutController::class, 'guestEasyCheckout'])->name('guest.easy_checkout');
+Route::get('/guest-order-confirmed/{order_id}',
+    [CheckoutController::class, 'guestOrderConfirmed'])->name('guest_order.confirmed');
 
 Route::group(['middleware' => ['auth']], function () {
 

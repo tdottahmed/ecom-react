@@ -177,10 +177,9 @@
                             </td>
                             <td>
                                 @if($order->delivery_status=='pending')
-                                    <button type="button" class="btn btn-soft-success btn-sm"
+                                    <button type="button" class="btn btn-soft-success"
                                             onclick="showCourierModal({{ $order->id }})">
-                                        <i class="las la-check"></i>
-                                        Courier now
+                                        Courier Now
                                     </button>
                                 @else
                                     {{ translate(ucfirst(str_replace('_', ' ', $order->delivery_status))) }}
@@ -207,9 +206,18 @@
                             @endif
                             <td>
                                 @if($order->fraudCheckHistory)
-                                    <span>
-                                        Checked: {{ $order->fraudCheckHistory->total_orders }} orders
-                                        ({{ $order->fraudCheckHistory->success_rate }}% success)
+                                    <span style="font-weight:600; font-size:14px; color:#333;">
+                                        Fraud Check:
+                                        <span
+                                            style="background:#007bff; color:#fff; padding:4px 8px; border-radius:6px; font-size:13px; margin-right:6px;">
+                                            {{ $order->fraudCheckHistory->total_orders }} Orders
+                                        </span>
+                                        -
+                                        Success Rate:
+                                        <span
+                                            style="background:#28a745; color:#fff; padding:4px 8px; border-radius:6px; font-size:13px;">
+                                            {{ $order->fraudCheckHistory->success_rate }}%
+                                        </span>
                                     </span>
                                 @else
                                     <a href="{{ route('order.checkFraud', $order->id) }}"
@@ -304,8 +312,7 @@
                             <div class="col-md-9">
                                 <select class="form-control" name="courier" id="courier" required>
                                     <option value="">{{ translate('Choose Courier') }}</option>
-                                    <option value="pathao">{{ __('Pathao') }}</option>
-                                    <option value="steadfast">{{ __('Steadfast') }}</option>
+                                    <option selected value="steadfast">{{ __('Steadfast') }}</option>
                                 </select>
                             </div>
                         </div>

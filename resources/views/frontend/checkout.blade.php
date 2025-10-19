@@ -8,7 +8,6 @@
                 <div class="col-lg-8 mx-auto">
                     <form class="form-default" data-toggle="validator" action="{{ route('payment.checkout') }}" role="form" method="POST" id="checkout-form">
                         @csrf
-
                         <div class="accordion" id="accordioncCheckoutInfo">
 
                             <!-- Shipping Info -->

@@ -29,7 +29,7 @@ class PathaoLocationService
             $client = $this->httpClientWithAuth($token['access_token']);
 
             // 🔹 Cities
-            $citiesResp = $client->get(rtrim($config['aladdin_url'], '/').'/city-list')->json();
+            $citiesResp = $client->get(rtrim($config['aladdin_url'], '/') . '/city-list')->json();
             if (($citiesResp['type'] ?? null) !== 'success') {
                 return ['success' => false, 'message' => 'City list fetch failed'];
             }
@@ -44,7 +44,7 @@ class PathaoLocationService
 
             // 🔹 Zones (no areas in DB)
             foreach ($cities as $c) {
-                $zonesUrl = rtrim($config['aladdin_url'], '/').'/cities/'.$c['city_id'].'/zone-list';
+                $zonesUrl = rtrim($config['aladdin_url'], '/') . '/cities/' . $c['city_id'] . '/zone-list';
                 $zonesResp = $client->get($zonesUrl);
 
                 if ($zonesResp->failed()) {
@@ -78,13 +78,12 @@ class PathaoLocationService
             }
 
             return ['success' => true, 'message' => 'Reference data synced successfully'];
-
         } catch (Throwable $e) {
             Log::error('Pathao reference sync error', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            return ['success' => false, 'message' => 'Sync failed: '.$e->getMessage()];
+            return ['success' => false, 'message' => 'Sync failed: ' . $e->getMessage()];
         }
     }
 
@@ -109,7 +108,7 @@ class PathaoLocationService
         // Try to find zone
         $pathaoZone = PathaoZone::where('city_id', $pathaoCity->cityId)
             ->where(function ($query) use ($city) {
-                $query->whereRaw('LOWER(name) LIKE ?', ['%'.$city.'%'])
+                $query->whereRaw('LOWER(name) LIKE ?', ['%' . $city . '%'])
                     ->orWhereRaw('? LIKE CONCAT("%", LOWER(name), "%")', [$city]);
             })
             ->first();
@@ -205,7 +204,7 @@ class PathaoLocationService
         return $bestScore >= 30 ? $bestArea : null;
     }
 
-    public function getPathaoArea(int $zoneId = null): array
+    public function getPathaoArea(int $zoneId): array
     {
         $config = $this->getPathaoConfig();
         $token = $this->getAccessToken();
@@ -215,7 +214,7 @@ class PathaoLocationService
         }
 
         $client = $this->httpClientWithAuth($token['access_token']);
-        $areasUrl = rtrim($config['aladdin_url'], '/').'/zones/'.$zoneId.'/area-list';
+        $areasUrl = rtrim($config['aladdin_url'], '/') . '/zones/' . $zoneId . '/area-list';
         $areasResp = $client->get($areasUrl);
         $areasBody = $areasResp->json();
 

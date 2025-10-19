@@ -92,7 +92,7 @@ class OrderController extends Controller
 
         if ($request->search) {
             $sort_search = $request->search;
-            $orders = $orders->where('code', 'like', '%'.$sort_search.'%');
+            $orders = $orders->where('code', 'like', '%' . $sort_search . '%');
         }
         if ($request->payment_status != null) {
             $orders = $orders->where('payment_status', $request->payment_status);
@@ -103,15 +103,27 @@ class OrderController extends Controller
             $delivery_status = $request->delivery_status;
         }
         if ($date != null) {
-            $orders = $orders->where('created_at', '>=',
-                date('Y-m-d', strtotime(explode(" to ", $date)[0])).'  00:00:00')
-                ->where('created_at', '<=', date('Y-m-d', strtotime(explode(" to ", $date)[1])).'  23:59:59');
+            $orders = $orders->where(
+                'created_at',
+                '>=',
+                date('Y-m-d', strtotime(explode(" to ", $date)[0])) . '  00:00:00'
+            )
+                ->where('created_at', '<=', date('Y-m-d', strtotime(explode(" to ", $date)[1])) . '  23:59:59');
         }
         $orders = $orders->paginate(15);
         $unpaid_order_payment_notification = get_notification_type('complete_unpaid_order_payment', 'type');
-        return view('backend.sales.index',
-            compact('orders', 'sort_search', 'order_type', 'payment_status', 'delivery_status', 'date',
-                'unpaid_order_payment_notification'));
+        return view(
+            'backend.sales.index',
+            compact(
+                'orders',
+                'sort_search',
+                'order_type',
+                'payment_status',
+                'delivery_status',
+                'date',
+                'unpaid_order_payment_notification'
+            )
+        );
     }
 
     public function show($id)
@@ -121,11 +133,6 @@ class OrderController extends Controller
         $delivery_boys = User::where('city', $order_shipping_address->city)
             ->where('user_type', 'delivery_boy')
             ->get();
-
-        if (env('DEMO_MODE') != 'On') {
-            $order->viewed = 1;
-            $order->save();
-        }
 
         return view('backend.sales.show', compact('order', 'delivery_boys'));
     }
@@ -168,7 +175,7 @@ class OrderController extends Controller
             $shippingAddress['postal_code'] = $address->postal_code;
             $shippingAddress['phone'] = $address->phone;
             if ($address->latitude || $address->longitude) {
-                $shippingAddress['lat_lang'] = $address->latitude.','.$address->longitude;
+                $shippingAddress['lat_lang'] = $address->latitude . ',' . $address->longitude;
             }
         }
 
@@ -197,7 +204,7 @@ class OrderController extends Controller
             $order->payment_type = $request->payment_option;
             $order->delivery_viewed = '0';
             $order->payment_status_viewed = '0';
-            $order->code = date('Ymd-His').rand(10, 99);
+            $order->code = date('Ymd-His') . rand(10, 99);
             $order->date = strtotime('now');
             $order->save();
 
@@ -218,7 +225,7 @@ class OrderController extends Controller
 
                 $product_stock = $product->stocks->where('variant', $product_variation)->first();
                 if ($product->digital != 1 && $cartItem['quantity'] > $product_stock->qty) {
-                    flash(translate('The requested quantity is not available for ').$product->getTranslation('name'))->warning();
+                    flash(translate('The requested quantity is not available for ') . $product->getTranslation('name'))->warning();
                     $order->delete();
                     return redirect()->route('cart')->send();
                 } elseif ($product->digital != 1) {
@@ -272,8 +279,13 @@ class OrderController extends Controller
                         $referred_by_user = User::where('referral_code', $order_detail->product_referral_code)->first();
 
                         $affiliateController = new AffiliateController;
-                        $affiliateController->processAffiliateStats($referred_by_user->id, 0, $order_detail->quantity,
-                            0, 0);
+                        $affiliateController->processAffiliateStats(
+                            $referred_by_user->id,
+                            0,
+                            $order_detail->quantity,
+                            0,
+                            0
+                        );
                     }
                 }
             }
@@ -439,8 +451,13 @@ class OrderController extends Controller
                         $referred_by_user = User::where('referral_code', $orderDetail->product_referral_code)->first();
 
                         $affiliateController = new AffiliateController;
-                        $affiliateController->processAffiliateStats($referred_by_user->id, 0, 0, $no_of_delivered,
-                            $no_of_canceled);
+                        $affiliateController->processAffiliateStats(
+                            $referred_by_user->id,
+                            0,
+                            0,
+                            $no_of_delivered,
+                            $no_of_canceled
+                        );
                     }
                 }
             }
@@ -449,8 +466,10 @@ class OrderController extends Controller
         EmailUtility::order_email($order, $request->status);
 
         // Delivery Status change SMS notification
-        if (addon_is_activated('otp_system') && SmsTemplate::where('identifier',
-                'delivery_status_change')->first()->status == 1) {
+        if (addon_is_activated('otp_system') && SmsTemplate::where(
+            'identifier',
+            'delivery_status_change'
+        )->first()->status == 1) {
             try {
                 SmsUtility::delivery_status_change(json_decode($order->shipping_address)->phone, $order);
             } catch (\Exception $e) {
@@ -552,8 +571,10 @@ class OrderController extends Controller
         }
 
 
-        if (addon_is_activated('otp_system') && SmsTemplate::where('identifier',
-                'payment_status_change')->first()->status == 1) {
+        if (addon_is_activated('otp_system') && SmsTemplate::where(
+            'identifier',
+            'payment_status_change'
+        )->first()->status == 1) {
             try {
                 SmsUtility::payment_status_change(json_decode($order->shipping_address)->phone, $order);
             } catch (\Exception $e) {
@@ -588,7 +609,7 @@ class OrderController extends Controller
 
             if (env('MAIL_USERNAME') != null && get_setting('delivery_boy_mail_notification') == '1') {
                 $array['view'] = 'emails.invoice';
-                $array['subject'] = translate('You are assigned to delivery an order. Order code').' - '.$order->code;
+                $array['subject'] = translate('You are assigned to delivery an order. Order code') . ' - ' . $order->code;
                 $array['from'] = env('MAIL_FROM_ADDRESS');
                 $array['order'] = $order;
 
@@ -598,8 +619,10 @@ class OrderController extends Controller
                 }
             }
 
-            if (addon_is_activated('otp_system') && SmsTemplate::where('identifier',
-                    'assign_delivery_boy')->first()->status == 1) {
+            if (addon_is_activated('otp_system') && SmsTemplate::where(
+                'identifier',
+                'assign_delivery_boy'
+            )->first()->status == 1) {
                 try {
                     SmsUtility::assign_delivery_boy($order->delivery_boy->phone, $order->code);
                 } catch (\Exception $e) {
@@ -644,31 +667,28 @@ class OrderController extends Controller
 
     public function orderCourier(Request $request)
     {
-//        $result = CourierFraudCheckerBd::check('01876525073');
-//        dd($result);
         $order = Order::findOrFail($request->order_id);
         $shippingDetails = json_decode($order->shipping_address);
 
-//        try {
-        $courierService = match ($request->courier) {
-            'steadfast' => new SteadFastCourierServic($order, $shippingDetails),
-            'pathao' => new PathaoCourierService($order, $shippingDetails),
-            default => throw new \Exception('Invalid courier service')
-        };
-        $response = $courierService->handle();
+        try {
+            $courierService = match ($request->courier) {
+                'steadfast' => new SteadFastCourierServic($order, $shippingDetails),
+                'pathao' => new PathaoCourierService($order, $shippingDetails),
+                default => throw new \Exception('Invalid courier service')
+            };
+            $response = $courierService->handle();
 
-        if ($response['success']) {
-            flash(translate('Order courier created successfully'))->success();
+            if ($response['success']) {
+                flash(translate('Order courier created successfully'))->success();
+                return back();
+            }
+
+            flash(translate($response['message'] ?? 'Failed to create courier order'))->error();
+            return back();
+        } catch (\Exception $e) {
+            flash(translate('Something went wrong'))->error();
             return back();
         }
-
-        flash(translate($response['message'] ?? 'Failed to create courier order'))->error();
-        return back();
-
-//        } catch (\Exception $e) {
-//            flash(translate('Something went wrong'))->error();
-//            return back();
-//        }
     }
 
     public function checkFraud($order_id)
@@ -724,5 +744,20 @@ class OrderController extends Controller
         );
 
         return back()->with('status', 'Fraud check saved successfully.');
+    }
+
+    public function courierOrders(Request $request)
+    {
+        $orders = Order::with(['orderShipment', 'orderDetails', 'user', 'shop', 'fraudCheckHistory'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(25);
+        return view('backend.sales.courier-orders', compact('orders'));
+    }
+
+    public function shipmentHistory(Order $order)
+    {
+        $shipments = $order->shipments()->orderBy('created_at', 'desc')->get();
+
+        return view('backend.sales.partials.shipment-history', compact('order', 'shipments'));
     }
 }

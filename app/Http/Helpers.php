@@ -49,6 +49,7 @@ use App\Models\ProductStock;
 use App\Models\SellerPackage;
 use App\Models\SellerPackagePayment;
 use App\Models\Shop;
+use App\Models\State;
 use App\Models\Tax;
 use App\Models\Translation;
 use App\Models\Upload;
@@ -59,9 +60,7 @@ use App\Models\Wishlist;
 use App\Utility\EmailUtility;
 use App\Utility\NotificationUtility;
 use App\Utility\SendSMSUtility;
-use Carbon\Carbon;
-
-;
+use Carbon\Carbon;;
 
 //sensSMS function for OTP
 if (!function_exists('sendSMS')) {
@@ -111,8 +110,10 @@ if (!function_exists('convert_to_usd')) {
     function convert_to_usd($amount)
     {
         $currency = Currency::find(get_setting('system_default_currency'));
-        return (floatval($amount) / floatval($currency->exchange_rate)) * Currency::where('code',
-                'USD')->first()->exchange_rate;
+        return (floatval($amount) / floatval($currency->exchange_rate)) * Currency::where(
+            'code',
+            'USD'
+        )->first()->exchange_rate;
     }
 }
 
@@ -120,8 +121,10 @@ if (!function_exists('convert_to_kes')) {
     function convert_to_kes($amount)
     {
         $currency = Currency::find(get_setting('system_default_currency'));
-        return (floatval($amount) / floatval($currency->exchange_rate)) * Currency::where('code',
-                'KES')->first()->exchange_rate;
+        return (floatval($amount) / floatval($currency->exchange_rate)) * Currency::where(
+            'code',
+            'KES'
+        )->first()->exchange_rate;
     }
 }
 
@@ -131,6 +134,24 @@ if (!function_exists('get_active_countries')) {
     {
         $country_query = Country::query();
         return $country_query->isEnabled()->get();
+    }
+}
+
+// get all active countries
+if (!function_exists('get_default_country')) {
+    function get_default_country()
+    {
+        $defaultCountry = Country::where('code', 'BD')->first();
+        return $defaultCountry;
+    }
+}
+
+// get all active states
+if (!function_exists('get_active_states')) {
+    function get_active_states($countryId)
+    {
+        $activeStates = State::where('country_id', $countryId)->where('status', 1)->get();
+        return $activeStates;
     }
 }
 
@@ -161,7 +182,7 @@ if (!function_exists('filter_products')) {
 if (!function_exists('get_cached_products')) {
     function get_cached_products($category_id = null)
     {
-        return Cache::remember('products-category-'.$category_id, 86400, function () use ($category_id) {
+        return Cache::remember('products-category-' . $category_id, 86400, function () use ($category_id) {
             return filter_products(Product::where('category_id', $category_id))->latest()->take(5)->get();
         });
     }
@@ -244,27 +265,27 @@ if (!function_exists('format_price')) {
             $temp = number_format($price / 1000000000, get_setting('no_of_decimals'), ".", "");
 
             if ($temp >= 1) {
-                $fomated_price = $temp."B";
+                $fomated_price = $temp . "B";
             } else {
                 $temp = number_format($price / 1000000, get_setting('no_of_decimals'), ".", "");
                 if ($temp >= 1) {
-                    $fomated_price = $temp."M";
+                    $fomated_price = $temp . "M";
                 }
             }
         }
 
         if (get_setting('symbol_format') == 1) {
-            return currency_symbol().$fomated_price;
+            return currency_symbol() . $fomated_price;
         } else {
             if (get_setting('symbol_format') == 3) {
-                return currency_symbol().' '.$fomated_price;
+                return currency_symbol() . ' ' . $fomated_price;
             } else {
                 if (get_setting('symbol_format') == 4) {
-                    return $fomated_price.' '.currency_symbol();
+                    return $fomated_price . ' ' . currency_symbol();
                 }
             }
         }
-        return $fomated_price.currency_symbol();
+        return $fomated_price . currency_symbol();
     }
 }
 
@@ -303,8 +324,11 @@ if (!function_exists('cart_product_price')) {
             }
 
             if ($product->wholesale_product) {
-                $wholesalePrice = $product_stock->wholesalePrices->where('min_qty', '<=',
-                    $cart_product['quantity'])->where('max_qty', '>=', $cart_product['quantity'])->first();
+                $wholesalePrice = $product_stock->wholesalePrices->where(
+                    'min_qty',
+                    '<=',
+                    $cart_product['quantity']
+                )->where('max_qty', '>=', $cart_product['quantity'])->first();
                 if ($wholesalePrice) {
                     $price = $wholesalePrice->price;
                 }
@@ -524,8 +548,12 @@ if (!function_exists('carts_coupon_discount')) {
                             foreach ($coupon_details as $key => $coupon_detail) {
                                 if ($coupon_detail->product_id == $cartItem['product_id']) {
                                     if ($coupon->discount_type == 'percent') {
-                                        $coupon_discount += (cart_product_price($cartItem, $product, false,
-                                                    false) * $coupon->discount / 100) * $cartItem['quantity'];
+                                        $coupon_discount += (cart_product_price(
+                                            $cartItem,
+                                            $product,
+                                            false,
+                                            false
+                                        ) * $coupon->discount / 100) * $cartItem['quantity'];
                                     } elseif ($coupon->discount_type == 'amount') {
                                         $coupon_discount += $coupon->discount * $cartItem['quantity'];
                                     }
@@ -595,10 +623,10 @@ if (!function_exists('home_price')) {
             if ($lowest_price == $highest_price) {
                 return format_price(convert_price($lowest_price));
             } else {
-                return format_price(convert_price($lowest_price)).' - '.format_price(convert_price($highest_price));
+                return format_price(convert_price($lowest_price)) . ' - ' . format_price(convert_price($highest_price));
             }
         } else {
-            return $lowest_price.' - '.$highest_price;
+            return $lowest_price . ' - ' . $highest_price;
         }
     }
 }
@@ -667,10 +695,10 @@ if (!function_exists('home_discounted_price')) {
             if ($lowest_price == $highest_price) {
                 return format_price(convert_price($lowest_price));
             } else {
-                return format_price(convert_price($lowest_price)).' - '.format_price(convert_price($highest_price));
+                return format_price(convert_price($lowest_price)) . ' - ' . format_price(convert_price($highest_price));
             }
         } else {
-            return $lowest_price.' - '.$highest_price;
+            return $lowest_price . ' - ' . $highest_price;
         }
     }
 }
@@ -855,7 +883,7 @@ function translate($key, $lang = null, $addslashes = false)
     }
 
     // return default lang if session lang not found
-    $translations_default = Cache::rememberForever('translations-'.env('DEFAULT_LANGUAGE', 'en'), function () {
+    $translations_default = Cache::rememberForever('translations-' . env('DEFAULT_LANGUAGE', 'en'), function () {
         return Translation::where('lang', env('DEFAULT_LANGUAGE', 'en'))->pluck('lang_value', 'lang_key')->toArray();
     });
     if (isset($translations_default[$lang_key])) {
@@ -882,19 +910,29 @@ if (!function_exists('translation_tables')) {
         if (!in_array($uniqueIdentifier, $noTableAddons)) {
             $addons = [];
             $addons['affiliate'] = [
-                'affiliate_options', 'affiliate_configs', 'affiliate_users', 'affiliate_payments',
-                'affiliate_withdraw_requests', 'affiliate_logs', 'affiliate_stats'
+                'affiliate_options',
+                'affiliate_configs',
+                'affiliate_users',
+                'affiliate_payments',
+                'affiliate_withdraw_requests',
+                'affiliate_logs',
+                'affiliate_stats'
             ];
             $addons['auction'] = ['auction_product_bids'];
             $addons['club_point'] = ['club_points', 'club_point_details'];
             $addons['delivery_boy'] = [
-                'delivery_boys', 'delivery_histories', 'delivery_boy_payments', 'delivery_boy_collections'
+                'delivery_boys',
+                'delivery_histories',
+                'delivery_boy_payments',
+                'delivery_boy_collections'
             ];
             $addons['offline_payment'] = ['manual_payment_methods'];
             $addons['otp_system'] = ['otp_configurations', 'sms_templates'];
             $addons['refund_request'] = ['refund_requests'];
             $addons['seller_subscription'] = [
-                'seller_packages', 'seller_package_translations', 'seller_package_payments'
+                'seller_packages',
+                'seller_package_translations',
+                'seller_package_payments'
             ];
             $addons['wholesale'] = ['wholesale_prices'];
 
@@ -934,8 +972,12 @@ function getShippingCost($carts, $index, $shipping_info = '', $carrier = '')
             // For carrier wise shipping
             if ($shipping_type == 'carrier_wise_shipping') {
                 $admin_product_total_weight += ($item_product->weight * $cart_item['quantity']);
-                $admin_product_total_price += (cart_product_price($cart_item, $item_product, false,
-                        false) * $cart_item['quantity']);
+                $admin_product_total_price += (cart_product_price(
+                    $cart_item,
+                    $item_product,
+                    false,
+                    false
+                ) * $cart_item['quantity']);
             }
         } else {
             $product_ids = array();
@@ -971,8 +1013,10 @@ function getShippingCost($carts, $index, $shipping_info = '', $carrier = '')
         if ($product->added_by == 'admin') {
             return get_setting('shipping_cost_admin') / count($admin_products);
         } else {
-            return Shop::where('user_id',
-                    $product->user_id)->first()->shipping_cost / count($seller_products[$product->user_id]);
+            return Shop::where(
+                'user_id',
+                $product->user_id
+            )->first()->shipping_cost / count($seller_products[$product->user_id]);
         }
     } elseif ($shipping_type == 'area_wise_shipping') {
         $city = City::where('id', $shipping_info['city_id'])->first();
@@ -986,8 +1030,10 @@ function getShippingCost($carts, $index, $shipping_info = '', $carrier = '')
         }
         return 0;
     } elseif ($shipping_type == 'carrier_wise_shipping') { // carrier wise shipping
-        $user_zone = $shipping_info['country_id'] != 0 ? Country::where('id',
-            $shipping_info['country_id'])->first()->zone_id : 0;
+        $user_zone = $shipping_info['country_id'] != 0 ? Country::where(
+            'id',
+            $shipping_info['country_id']
+        )->first()->zone_id : 0;
 
         if ($carrier == null || $user_zone == 0) {
             return 0;
@@ -1038,11 +1084,15 @@ if (!function_exists('seller_base_carrier_list')) {
     function seller_base_carrier_list($owner_id, $userId = null, $tempUserId = null, $shipping_info = null)
     {
         $carrier_list = array();
-        $carts = ($userId != null) ? Cart::where('user_id', $userId)->active()->get() : Cart::where('temp_user_id',
-            $tempUserId)->active()->get();
+        $carts = ($userId != null) ? Cart::where('user_id', $userId)->active()->get() : Cart::where(
+            'temp_user_id',
+            $tempUserId
+        )->active()->get();
         if (count($carts) > 0) {
-            $zone = $shipping_info['country_id'] ? Country::where('id',
-                $shipping_info['country_id'])->first()->zone_id : null;
+            $zone = $shipping_info['country_id'] ? Country::where(
+                'id',
+                $shipping_info['country_id']
+            )->first()->zone_id : null;
             $carrier_query = Carrier::query();
             $carrier_query->whereIn('id', function ($query) use ($zone) {
                 $query->select('carrier_id')->from('carrier_range_prices')
@@ -1265,7 +1315,7 @@ if (!function_exists('static_asset')) {
 if (!function_exists('getBaseURL')) {
     function getBaseURL()
     {
-        $root = '//'.$_SERVER['HTTP_HOST'];
+        $root = '//' . $_SERVER['HTTP_HOST'];
         $root .= str_replace(basename($_SERVER['SCRIPT_NAME']), '', $_SERVER['SCRIPT_NAME']);
 
         return $root;
@@ -1277,7 +1327,7 @@ if (!function_exists('getFileBaseURL')) {
     function getFileBaseURL()
     {
         if (env('FILESYSTEM_DRIVER') != 'local') {
-            return env(Str::upper(env('FILESYSTEM_DRIVER')).'_URL').'/';
+            return env(Str::upper(env('FILESYSTEM_DRIVER')) . '_URL') . '/';
         }
 
         return getBaseURL();
@@ -1311,7 +1361,7 @@ if (!function_exists('get_setting')) {
         $settings = Cache::remember('business_settings', 86400, function () {
             return BusinessSetting::all();
         });
-//        $settings = BusinessSetting::all();
+        //        $settings = BusinessSetting::all();
 
         if ($lang == false) {
             $setting = $settings->where('type', $key)->first();
@@ -1371,7 +1421,7 @@ if (!function_exists('formatBytes')) {
         $bytes /= pow(1024, $pow);
         // $bytes /= (1 << (10 * $pow));
 
-        return round($bytes, $precision).' '.$units[$pow];
+        return round($bytes, $precision) . ' ' . $units[$pow];
     }
 }
 
@@ -1449,7 +1499,6 @@ if (!function_exists('order_re_payment_done')) {
             $order->notified = 1;
             $order->save();
         }
-
     }
 }
 
@@ -1490,8 +1539,10 @@ if (!function_exists('seller_purchase_payment_done')) {
         $seller->seller_package_id = $seller_package_id;
         $seller_package = SellerPackage::findOrFail($seller_package_id);
         $seller->product_upload_limit = $seller_package->product_upload_limit;
-        $seller->package_invalid_at = date('Y-m-d',
-            strtotime($seller->package_invalid_at.' +'.$seller_package->duration.'days'));
+        $seller->package_invalid_at = date(
+            'Y-m-d',
+            strtotime($seller->package_invalid_at . ' +' . $seller_package->duration . 'days')
+        );
         $seller->save();
 
         $seller_package = new SellerPackagePayment();
@@ -1857,8 +1908,10 @@ if (!function_exists('get_seller_products')) {
     function get_seller_products($user_id)
     {
         $product_query = Product::query();
-        return $product_query->where('user_id', $user_id)->isApprovedPublished()->orderBy('created_at',
-            'desc')->limit(15)->get();
+        return $product_query->where('user_id', $user_id)->isApprovedPublished()->orderBy(
+            'created_at',
+            'desc'
+        )->limit(15)->get();
     }
 }
 
@@ -1867,8 +1920,10 @@ if (!function_exists('get_shop_best_selling_products')) {
     function get_shop_best_selling_products($user_id)
     {
         $product_query = Product::query();
-        return $product_query->where('user_id', $user_id)->isApprovedPublished()->orderBy('num_of_sale',
-            'desc')->paginate(24);
+        return $product_query->where('user_id', $user_id)->isApprovedPublished()->orderBy(
+            'num_of_sale',
+            'desc'
+        )->paginate(24);
     }
 }
 
@@ -1881,8 +1936,11 @@ if (!function_exists('get_all_auction_products')) {
         if (get_setting('seller_auction_product') == 0) {
             $products = $products->where('added_by', 'admin');
         }
-        $products = $products->where('auction_start_date', '<=', strtotime("now"))->where('auction_end_date', '>=',
-            strtotime("now"));
+        $products = $products->where('auction_start_date', '<=', strtotime("now"))->where(
+            'auction_end_date',
+            '>=',
+            strtotime("now")
+        );
 
         if ($limit) {
             $products = $products->limit($limit);
@@ -1985,8 +2043,10 @@ if (!function_exists('get_frequently_bought_products')) {
         $productSelectionType = $product->frequently_bought_selection_type;
         $fqbProducts = [];
         if ($productSelectionType == 'product') {
-            $fqbProductIds = $product->frequently_bought_products()->where('category_id',
-                null)->pluck('frequently_bought_product_id')->toArray();
+            $fqbProductIds = $product->frequently_bought_products()->where(
+                'category_id',
+                null
+            )->pluck('frequently_bought_product_id')->toArray();
             $fqbProducts = filter_products(Product::whereIn('id', $fqbProductIds))->get();
         } elseif ($productSelectionType == 'category') {
             $fqb_product_category = $product->frequently_bought_products()->where('category_id', '!=', null)->first();
@@ -1995,8 +2055,10 @@ if (!function_exists('get_frequently_bought_products')) {
                 $category = Category::with('childrenCategories')->find($fqbCategoryID);
 
                 $fqbProducts = $category->products()->where('id', '!=', $product->id);
-                $fqbProducts = $product->added_by == 'admin' ? $fqbProducts->where('added_by',
-                    'admin') : $fqbProducts->where('user_id', $product->user_id);
+                $fqbProducts = $product->added_by == 'admin' ? $fqbProducts->where(
+                    'added_by',
+                    'admin'
+                ) : $fqbProducts->where('user_id', $product->user_id);
 
                 $fqbProducts = filter_products($fqbProducts)->orderByRaw('RAND()')->take(10)->get();
             }
@@ -2038,8 +2100,10 @@ if (!function_exists('get_brands_by_products')) {
     function get_brands_by_products($usrt_id)
     {
         $product_query = Product::query();
-        $brand_ids = $product_query->where('user_id',
-            $usrt_id)->isApprovedPublished()->whereNotNull('brand_id')->pluck('brand_id')->toArray();
+        $brand_ids = $product_query->where(
+            'user_id',
+            $usrt_id
+        )->isApprovedPublished()->whereNotNull('brand_id')->pluck('brand_id')->toArray();
 
         $brand_query = Brand::query();
         return $brand_query->whereIn('id', $brand_ids)->get();
@@ -2083,8 +2147,10 @@ if (!function_exists('get_categories_by_products')) {
     function get_categories_by_products($user_id)
     {
         $product_query = Product::query();
-        $category_ids = $product_query->where('user_id',
-            $user_id)->isApprovedPublished()->pluck('category_id')->toArray();
+        $category_ids = $product_query->where(
+            'user_id',
+            $user_id
+        )->isApprovedPublished()->pluck('category_id')->toArray();
 
         $category_query = Category::query();
         return $category_query->whereIn('id', $category_ids)->get();
@@ -2095,8 +2161,10 @@ if (!function_exists('get_categories_by_preorder_products')) {
     function get_categories_by_preorder_products($user_id)
     {
         $product_query = PreorderProduct::query();
-        $category_ids = $product_query->where('user_id', $user_id)->where('is_published',
-            1)->pluck('category_id')->toArray();
+        $category_ids = $product_query->where('user_id', $user_id)->where(
+            'is_published',
+            1
+        )->pluck('category_id')->toArray();
 
         $category_query = Category::query();
         return $category_query->whereIn('id', $category_ids)->get();
@@ -2203,8 +2271,10 @@ if (!function_exists('get_user_total_expenditure')) {
     function get_user_total_expenditure()
     {
         $user_expenditure_query = Order::query();
-        return $user_expenditure_query->where('user_id', Auth::user()->id)->where('payment_status',
-            'paid')->sum('grand_total');
+        return $user_expenditure_query->where('user_id', Auth::user()->id)->where(
+            'payment_status',
+            'paid'
+        )->sum('grand_total');
     }
 }
 
@@ -2383,8 +2453,11 @@ if (!function_exists('get_coupons')) {
     function get_coupons($user_id = null, $paginate = null)
     {
         $coupon_query = Coupon::query();
-        $coupon_query = $coupon_query->where('start_date', '<=', strtotime(date('d-m-Y')))->where('end_date', '>=',
-            strtotime(date('d-m-Y')));
+        $coupon_query = $coupon_query->where('start_date', '<=', strtotime(date('d-m-Y')))->where(
+            'end_date',
+            '>=',
+            strtotime(date('d-m-Y'))
+        );
         if ($user_id) {
             $coupon_query = $coupon_query->where('user_id', $user_id);
         }
@@ -2474,7 +2547,7 @@ if (!function_exists('offerUserWelcomeCoupon')) {
             $user_coupon->validation_days = $couponDetails->validation_days;
             $user_coupon->discount = $coupon->discount;
             $user_coupon->discount_type = $coupon->discount_type;
-            $user_coupon->expiry_date = strtotime(date('d-m-Y H:i:s').' +'.$couponDetails->validation_days.'days');
+            $user_coupon->expiry_date = strtotime(date('d-m-Y H:i:s') . ' +' . $couponDetails->validation_days . 'days');
             $user_coupon->save();
         }
     }
@@ -2527,8 +2600,10 @@ if (!function_exists('get_pos_user_cart')) {
             $sessionTemUserId = Session::has('pos.temp_user_id') ? Session::get('pos.temp_user_id') : null;
         }
 
-        $cart = Cart::where('owner_id', $owner_id)->where('user_id', $sessionUserID)->where('temp_user_id',
-            $sessionTemUserId)->get();
+        $cart = Cart::where('owner_id', $owner_id)->where('user_id', $sessionUserID)->where(
+            'temp_user_id',
+            $sessionTemUserId
+        )->get();
         return $cart;
     }
 }
@@ -2575,11 +2650,11 @@ if (!function_exists('number_format_short')) {
         // Remove unecessary zeroes after decimal. "1.0" -> "1"; "1.00" -> "1"
         // Intentionally does not affect partials, eg "1.50" -> "1.50"
         if ($precision > 0) {
-            $dotzero = '.'.str_repeat('0', $precision);
+            $dotzero = '.' . str_repeat('0', $precision);
             $n_format = str_replace($dotzero, '', $n_format);
         }
 
-        return $n_format.$suffix;
+        return $n_format . $suffix;
     }
 }
 
@@ -2588,8 +2663,10 @@ if (!function_exists('get_notification_type')) {
     function get_notification_type($value, $columnNamre)
     {
         $notificationType = NotificationType::query();
-        $notificationType = $columnNamre == 'id' ? $notificationType->where('id',
-            $value) : $notificationType->where('type', $value);
+        $notificationType = $columnNamre == 'id' ? $notificationType->where(
+            'id',
+            $value
+        ) : $notificationType->where('type', $value);
         return $notificationType->first();
     }
 }
@@ -2685,8 +2762,10 @@ if (!function_exists('deleteProductReview')) {
             $seller = $product->user->shop;
             foreach ($product->reviews as $review) {
                 $seller = $seller->fresh();
-                $seller->rating = (($seller->rating * $seller->num_of_reviews) - $product->rating) / max(1,
-                        $seller->num_of_reviews - 1);
+                $seller->rating = (($seller->rating * $seller->num_of_reviews) - $product->rating) / max(
+                    1,
+                    $seller->num_of_reviews - 1
+                );
                 $seller->num_of_reviews -= 1;
                 $seller->save();
             }
@@ -3009,8 +3088,10 @@ if (!function_exists('is_review_given')) {
     function is_review_given($order)
     {
 
-        $review = PreorderProductReview::where('user_id', auth()->id())->where('preorder_product_id',
-            $order->preorder_product->id)->first();
+        $review = PreorderProductReview::where('user_id', auth()->id())->where(
+            'preorder_product_id',
+            $order->preorder_product->id
+        )->first();
         if ($review) {
             return '#28a745';
         }
@@ -3062,7 +3143,6 @@ if (!function_exists('filter_preorder_product')) {
         } else {
             return $products;
         }
-
     }
 }
 
@@ -3082,4 +3162,28 @@ function filter_single_preorder_product($product)
 
     // If vendor system is not activated, return the product directly
     return $product;
+}
+
+if (!function_exists('single_price')) {
+    function single_price($price)
+    {
+        return format_price(convert_price($price));
+    }
+}
+
+if (!function_exists('convert_price')) {
+    function convert_price($price)
+    {
+        // Add your currency conversion logic here
+        return $price;
+    }
+}
+
+if (!function_exists('format_price')) {
+    function format_price($price)
+    {
+        // Format the price with currency symbol
+        $currency_symbol = '৳'; // Change to your currency symbol
+        return $currency_symbol . number_format($price, 2);
+    }
 }

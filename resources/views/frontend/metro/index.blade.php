@@ -198,7 +198,7 @@
     <!-- Today's deal -->
     @php
         $todays_deal_section_bg = get_setting('todays_deal_section_bg_color');
-        $displayTodayDeal = false;
+        $displayTodayDeal = true;
     @endphp
     @if($displayTodayDeal)
         <div id="todays_deal" class="mb-2rem mt-2 mt-md-3"
