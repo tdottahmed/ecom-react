@@ -11,108 +11,100 @@
       allowClear: true
     });
 
-    // Tab functionality
-    $('.tab-header').click(function() {
-      $('.tab-header').removeClass('active');
-      $(this).addClass('active');
+    // Quantity adjustment functions
+    function setupQuantityControls() {
+      $('#increase-qty').click(function() {
+        const $input = $('#product-quantity');
+        const currentVal = parseInt($input.val()) || 1;
+        const maxStock = parseInt($input.attr('max')) || 999;
+        if (currentVal < maxStock) {
+          $input.val(currentVal + 1);
+          updateOrderSummary();
+        }
+      });
 
-      const tabId = $(this).data('tab');
-      $('.tab-pane').removeClass('active');
-      $(`#${tabId}`).addClass('active');
-    });
+      $('#decrease-qty').click(function() {
+        const $input = $('#product-quantity');
+        const currentVal = parseInt($input.val()) || 1;
+        if (currentVal > 1) {
+          $input.val(currentVal - 1);
+          updateOrderSummary();
+        }
+      });
 
-    // Product gallery thumbnail click
-    $('.thumbnail').click(function() {
-      const imageUrl = $(this).data('image');
-      $('#main-product-image').attr('src', imageUrl);
-    });
+      $('#product-quantity').on('input change', function() {
+        let currentVal = parseInt($(this).val()) || 1;
+        const maxStock = parseInt($(this).attr('max')) || 999;
+        const minQty = parseInt($(this).attr('min')) || 1;
 
-    // Quantity adjustment
-    $('#increase-qty').click(function() {
-      const currentVal = parseInt($('#product-quantity').val());
-      const maxStock = parseInt($('#product-quantity').attr('max'));
-      if (currentVal < maxStock) {
-        $('#product-quantity').val(currentVal + 1);
+        if (currentVal < minQty) {
+          currentVal = minQty;
+        } else if (currentVal > maxStock) {
+          currentVal = maxStock;
+        }
+
+        $(this).val(currentVal);
         updateOrderSummary();
-      }
-    });
-
-    $('#decrease-qty').click(function() {
-      const currentVal = parseInt($('#product-quantity').val());
-      if (currentVal > 1) {
-        $('#product-quantity').val(currentVal - 1);
-        updateOrderSummary();
-      }
-    });
-
-    $('#product-quantity').change(function() {
-      let currentVal = parseInt($(this).val());
-      const maxStock = parseInt($(this).attr('max'));
-      const minQty = parseInt($(this).attr('min'));
-
-      if (isNaN(currentVal) || currentVal < minQty) {
-        currentVal = minQty;
-      } else if (currentVal > maxStock) {
-        currentVal = maxStock;
-      }
-
-      $(this).val(currentVal);
-      updateOrderSummary();
-    });
+      });
+    }
 
     // Product variation selection
-    $('.variation-option').click(function() {
-      if ($(this).hasClass('out-of-stock')) return;
+    function setupVariationSelection() {
+      $('.variation-option').click(function() {
+        if ($(this).hasClass('cursor-not-allowed')) return;
 
-      $('.variation-option').removeClass('selected');
-      $(this).addClass('selected');
+        $('.variation-option').removeClass('bg-indigo-800 text-white');
+        $(this).addClass('bg-indigo-800 text-white');
 
-      const variantId = $(this).data('variant-id');
-      const price = $(this).data('price');
+        const variantId = $(this).data('variant-id');
+        const price = $(this).data('price');
+        const sku = $(this).data('sku');
+        const qty = $(this).data('qty');
+        const variant = $(this).data('variant');
 
-      const sku = $(this).data('sku');
-      const qty = $(this).data('qty');
-      const variant = $(this).data('variant');
+        // Update variant ID in form
+        $('#variant_id').val(variantId);
 
-      // Update variant ID in form
-      $('#variant_id').val(variantId);
+        // Update price
+        $('.variant-price').text('৳' + parseFloat(price).toFixed(2));
 
-      // Update price
-      $('.variant-price').text('৳' + parseFloat(price).toFixed(2));
+        // Update stock status
+        const $stockStatus = $('#variant-stock-status');
+        if (qty > 0) {
+          $stockStatus.text('In Stock').removeClass('text-red-500').addClass('text-green-500');
+        } else {
+          $stockStatus.text('Out of Stock').removeClass('text-green-500').addClass('text-red-500');
+        }
 
-      // Update stock status
-      const stockStatus = $('#variant-stock-status');
-      if (qty > 0) {
-        stockStatus.text('In Stock').removeClass('out-of-stock').addClass('in-stock');
-      } else {
-        stockStatus.text('Out of Stock').removeClass('in-stock').addClass('out-of-stock');
+        // Update SKU
+        $('#variant-sku-container span:last').text('SKU: ' + sku);
+
+        // Update quantity selector max value
+        $('#product-quantity').attr('max', qty);
+        updateOrderSummary();
+
+        // Update product name in summary
+        $('#summary-product-name').text("{{ $detailedProduct->name }}" + (variant ? ' - ' + variant : ''));
+      });
+
+      // Set first variant as selected by default
+      if ($('.variation-option').length > 0) {
+        $('.variation-option:first').click();
       }
+    }
 
-      // Update SKU
-      $('#variant-sku-container span:last').text('SKU: ' + sku);
-
-      // Update quantity selector max value
-      $('#product-quantity').attr('max', qty);
-
-      // Update order summary
-      updateOrderSummary();
-
-      // Update product name in summary if variant has a specific name
-      $('#summary-product-name').text("{{ $detailedProduct->name }}" + (variant ? ' - ' + variant : ''));
-    });
-
-    // Update order summary based on quantity
+    // Update order summary
     function updateOrderSummary() {
-      const quantity = parseInt($('#product-quantity').val());
+      const quantity = parseInt($('#product-quantity').val()) || 1;
       $('#form-quantity').val(quantity);
       $('#summary-quantity').text(quantity);
 
       // Get the selected variation price or default to product price
       let unitPrice = {{ $detailedProduct->unit_price }};
-      const selectedVariant = $('.variation-option.selected');
+      const $selectedVariant = $('.variation-option.bg-indigo-800');
 
-      if (selectedVariant.length) {
-        unitPrice = selectedVariant.data('price');
+      if ($selectedVariant.length) {
+        unitPrice = $selectedVariant.data('price');
       }
 
       const discount = {{ $detailedProduct->discount }};
@@ -130,351 +122,216 @@
       }
 
       const subtotal = discountedPrice * quantity;
-      const shipping = parseInt($('#shipping-cost').text().replace('৳', '').replace(',', ''));
+      const shipping = parseFloat($('#shipping-cost').text().replace('৳', '').replace(',', '')) || 60;
       const total = subtotal + shipping + tax;
 
       // Update the order summary
-      $('.order-item:first span:last').text('৳' + subtotal.toFixed(2));
+      $('.variant-price').text('৳' + unitPrice.toFixed(2));
       $('#total-price').text('৳' + total.toFixed(2));
-      $('#summary-price').text('৳' + unitPrice.toFixed(2));
     }
 
     // District selection affects shipping cost
-    $('input[name="district"]').change(function() {
-      console.log('district changed');
-      const district = $(this).val();
-      let shippingCost = 60;
+    function setupDistrictSelection() {
+      $('input[name="district"]').change(function() {
+        const district = $(this).val();
+        const shippingCost = district === 'outside-dhaka' ? 120 : 60;
+        $('#shipping-cost').text('৳' + shippingCost.toFixed(2));
+        updateOrderSummary();
+      });
+    }
 
-      if (district == 'outside-dhaka') {
-        shippingCost = 120;
-      }
+    // Bangladesh Phone Number Validation
+    function validateBangladeshPhone(phone) {
+      const cleanPhone = phone.replace(/\D/g, '');
 
-      $('#shipping-cost').text('৳' + shippingCost.toFixed(2));
-      updateOrderSummary();
-    });
+      if (cleanPhone.length !== 10) return false;
+      if (!cleanPhone.startsWith('1')) return false;
 
-    // Form submission
-    $('#checkoutForm').submit(function(e) {
-      let valid = true;
-      let message = "";
+      const validPrefixes = ['13', '14', '15', '16', '17', '18', '19'];
+      const prefix = cleanPhone.substring(0, 2);
+      return validPrefixes.includes(prefix);
+    }
+
+    // Phone validation
+    function setupPhoneValidation() {
+      $('#mobileNumber').on('input', function() {
+        const phone = $(this).val();
+        const $phoneError = $('#phoneError');
+
+        if (phone === '') {
+          $phoneError.hide();
+          return;
+        }
+
+        // Format phone number (limit to 10 digits)
+        let formattedPhone = phone.replace(/\D/g, '');
+        if (formattedPhone.length > 10) {
+          formattedPhone = formattedPhone.substring(0, 10);
+        }
+        $(this).val(formattedPhone);
+
+        if (!validateBangladeshPhone(formattedPhone)) {
+          $phoneError.text('Please enter a valid Bangladesh mobile number (10 digits starting with 1)');
+          $phoneError.show();
+          $(this).addClass('border-red-500');
+        } else {
+          $phoneError.hide();
+          $(this).removeClass('border-red-500');
+        }
+      });
+    }
+
+    // Form validation
+    function validateForm() {
+      let isValid = true;
+      const errors = [];
 
       // Name validation
       const nameValue = $('#fullName').val().trim();
       if (nameValue.length < 3 || !/^[a-zA-Z\s]+$/.test(nameValue)) {
-        message = "Please enter a valid full name (only letters, at least 3 characters).";
-        $('#fullName').focus();
-        valid = false;
+        errors.push("Please enter a valid full name (only letters, at least 3 characters).");
+        $('#fullName').addClass('border-red-500');
+        isValid = false;
+      } else {
+        $('#fullName').removeClass('border-red-500');
       }
 
-      // Phone validation (Bangladesh format)
+      // Phone validation
       const phoneValue = $('#mobileNumber').val().trim();
-      const phonePattern = /^(?:\+8801|01)[3-9]\d{8}$/;
-      if (valid && !phonePattern.test(phoneValue)) {
-        message = "Please enter a valid Bangladeshi mobile number (e.g. +8801XXXXXXXXX or 01XXXXXXXXX).";
-        $('#mobileNumber').focus();
-        valid = false;
+      if (!validateBangladeshPhone(phoneValue)) {
+        errors.push("Please enter a valid Bangladeshi mobile number.");
+        $('#mobileNumber').addClass('border-red-500');
+        isValid = false;
+      } else {
+        $('#mobileNumber').removeClass('border-red-500');
       }
 
       // Email validation
       const emailValue = $('#email').val().trim();
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (valid && (!emailValue || !emailPattern.test(emailValue))) {
-        message = "Please enter a valid email address.";
-        $('#email').focus();
-        valid = false;
+      if (!emailValue || !emailPattern.test(emailValue)) {
+        errors.push("Please enter a valid email address.");
+        $('#email').addClass('border-red-500');
+        isValid = false;
+      } else {
+        $('#email').removeClass('border-red-500');
       }
 
       // Address validation
       const addressValue = $('#address').val().trim();
-      if (valid && addressValue.length < 10) {
-        message = "Please enter a complete address (at least 10 characters).";
-        $('#address').focus();
-        valid = false;
+      if (addressValue.length < 10) {
+        errors.push("Please enter a complete address (at least 10 characters).");
+        $('#address').addClass('border-red-500');
+        isValid = false;
+      } else {
+        $('#address').removeClass('border-red-500');
       }
 
       // State validation
-      if (valid && !$('#state_id').val()) {
-        message = "Please select your state.";
-        $('#state_id').focus();
-        valid = false;
+      if (!$('#state_id').val()) {
+        errors.push("Please select your state.");
+        $('#state_id').addClass('border-red-500');
+        isValid = false;
+      } else {
+        $('#state_id').removeClass('border-red-500');
       }
 
       // City validation
-      if (valid && !$('#city_id').val()) {
-        message = "Please select your city.";
-        $('#city_id').focus();
-        valid = false;
+      if (!$('#city_id').val()) {
+        errors.push("Please select your city.");
+        $('#city_id').addClass('border-red-500');
+        isValid = false;
+      } else {
+        $('#city_id').removeClass('border-red-500');
       }
 
       // District validation
-      if (valid && !$("input[name='district']:checked").val()) {
-        message = "Please select your district (Inside/Outside Dhaka).";
-        valid = false;
-      }
-
-      // Payment validation
-      if (valid && !$('#payment_method').val()) {
-        message = "Please select your payment method.";
-        $('#payment_method').focus();
-        valid = false;
+      if (!$("input[name='district']:checked").val()) {
+        errors.push("Please select your district (Inside/Outside Dhaka).");
+        isValid = false;
       }
 
       // Variant validation (if product has variants)
-      if (valid && $('.variation-option').length > 0 && !$('#variant_id').val()) {
-        message = "Please select a product variation.";
-        valid = false;
+      if ($('.variation-option').length > 0 && !$('#variant_id').val()) {
+        errors.push("Please select a product variation.");
+        isValid = false;
       }
 
-      if (!valid) {
-        // Create a temporary error display
-        const errorHtml = `
-                    <div class="validation-error">
-                        <h4 style="margin-bottom: 10px; color: var(--danger);">
-                            <i class="fas fa-exclamation-circle"></i> Please fix the following error:
-                        </h4>
-                        <p><i class="fas fa-times-circle"></i> ${message}</p>
-                    </div>
-                `;
-
-        // Remove any existing temporary errors
-        $('.validation-error.temporary').remove();
-
-        // Add the error message at the top of the form
-        $(errorHtml).addClass('temporary').insertBefore('#checkoutForm .form-group:first');
-
-        // Scroll to the error message
-        $('html, body').animate({
-          scrollTop: $('.validation-error.temporary').offset().top - 100
-        }, 500);
-
-        return false;
-      }
-
-      // Submit form if all validation passes
-      return true;
-    });
-
-    $('#question-form').submit(function(e) {
-      e.preventDefault();
-      alert('Question submitted! This is a demo.');
-    });
-
-    // Buy now button
-    $('#buy-now-btn').click(function() {
-      $('#checkout').get(0).scrollIntoView({
-        behavior: 'smooth'
-      });
-    });
-
-    // Button pulse glow animation every 5 seconds
-    function addButtonZoom() {
-      $('#checkoutSubmitBtn').addClass('button-pulse');
-      setTimeout(() => {
-        $('#checkoutSubmitBtn').removeClass('button-pulse');
-      }, 1100);
+      return {
+        isValid,
+        errors
+      };
     }
 
-    // Start button zoom animation every 5 seconds
-    setInterval(addButtonZoom, 5000);
-
-    // Load States on page load (since country is fixed)
-    let countryId = $("input[name='country_id']").val();
-    if (countryId) {
-      $.post("{{ route('get-state') }}", {
-        _token: '{{ csrf_token() }}',
-        country_id: countryId
-      }, function(data) {
-        $('#state_id').html(JSON.parse(data));
-        $('#state_id').trigger('change.select2');
-
-        // Select previously selected state if exists
-        @if (old('state_id'))
-          $('#state_id').val('{{ old('state_id') }}').trigger('change');
-        @endif
-      });
-    }
-
-    // When state is selected, load cities
-    $('#state_id').on('change', function() {
-      let stateId = $(this).val();
-
-      if (stateId) {
-        $.post("{{ route('get-city') }}", {
+    // Load States and Cities
+    function loadStatesAndCities() {
+      const countryId = $("input[name='country_id']").val();
+      if (countryId) {
+        $.post("{{ route('get-state') }}", {
           _token: '{{ csrf_token() }}',
-          state_id: stateId
+          country_id: countryId
         }, function(data) {
-          $('#city_id').html(JSON.parse(data));
-          $('#city_id').trigger('change.select2');
+          $('#state_id').html(JSON.parse(data)).trigger('change.select2');
 
-          // Select previously selected city if exists
-          @if (old('city_id'))
-            $('#city_id').val('{{ old('city_id') }}').trigger('change');
+          // Select previously selected state if exists
+          @if (old('state_id'))
+            $('#state_id').val('{{ old('state_id') }}').trigger('change');
           @endif
         });
-      } else {
-        $('#city_id').html('<option value="">Select City</option>');
-        $('#city_id').trigger('change.select2');
-      }
-    });
-
-    // Initialize with old values if they exist
-    @if (old('state_id'))
-      // State will be handled in the AJAX callback
-    @endif
-
-    @if (old('city_id'))
-      // City will be handled in the AJAX callback
-    @endif
-
-    // Set the first variant as selected by default if variations exist
-    if ($('.variation-option').length > 0) {
-      $('.variation-option:first').click();
-    }
-
-
-  });
-</script>
-
-<script>
-  $(document).ready(function() {
-    // Bangladesh Phone Number Validation
-    function validateBangladeshPhone(phone) {
-      // Remove any non-digit characters
-      const cleanPhone = phone.replace(/\D/g, '');
-
-      // Check if phone number starts with 1 and has exactly 10 digits
-      if (cleanPhone.length !== 10) {
-        return false;
       }
 
-      // Check if it starts with 1 (common for Bangladesh mobile numbers)
-      if (!cleanPhone.startsWith('1')) {
-        return false;
-      }
+      // When state is selected, load cities
+      $('#state_id').on('change', function() {
+        const stateId = $(this).val();
 
-      // Check if it's a valid operator prefix
-      const validPrefixes = [
-        '13', '14', '15', '16', '17', '18', '19'
-      ];
+        if (stateId) {
+          $.post("{{ route('get-city') }}", {
+            _token: '{{ csrf_token() }}',
+            state_id: stateId
+          }, function(data) {
+            $('#city_id').html(JSON.parse(data)).trigger('change.select2');
 
-      const prefix = cleanPhone.substring(0, 2);
-      return validPrefixes.includes(prefix);
-    }
-
-    // Phone validation on input change
-    $('#mobileNumber').on('input', function() {
-      const phone = $(this).val();
-      const phoneError = $('#phoneError');
-
-      if (phone === '') {
-        phoneError.hide();
-        return;
-      }
-
-      if (!validateBangladeshPhone(phone)) {
-        phoneError.text('Please enter a valid Bangladesh mobile number (10 digits starting with 1)');
-        phoneError.show();
-        $(this).addClass('border-red-500');
-      } else {
-        phoneError.hide();
-        $(this).removeClass('border-red-500');
-      }
-    });
-
-    // Form submission handler
-    $('#checkoutForm').on('submit', function(e) {
-      e.preventDefault();
-
-      // Validate all required fields
-      let isValid = true;
-      const phone = $('#mobileNumber').val();
-
-      // Phone validation
-      if (!validateBangladeshPhone(phone)) {
-        $('#phoneError').text('Please enter a valid Bangladesh mobile number');
-        $('#phoneError').show();
-        $('#mobileNumber').addClass('border-red-500');
-        isValid = false;
-      }
-
-      // Check if all required fields are filled
-      $(this).find('input[required], select[required], textarea[required]').each(function() {
-        if (!$(this).val()) {
-          isValid = false;
-          $(this).addClass('border-red-500');
+            // Select previously selected city if exists
+            @if (old('city_id'))
+              $('#city_id').val('{{ old('city_id') }}').trigger('change');
+            @endif
+          });
         } else {
-          $(this).removeClass('border-red-500');
+          $('#city_id').html('<option value="">Select City</option>').trigger('change.select2');
         }
       });
-
-      // Check if payment method is selected
-      if (!$('input[name="payment_method"]:checked').length) {
-        isValid = false;
-        $('.payment-option').first().find('label').addClass('border-red-500');
-      } else {
-        $('.payment-option label').removeClass('border-red-500');
-      }
-
-      if (isValid) {
-        // Show loading state
-        const submitBtn = $(this).find('button[type="submit"]');
-        const originalText = submitBtn.text();
-        submitBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i> Processing...');
-        submitBtn.prop('disabled', true);
-
-        // Submit the form
-        $.ajax({
-          url: $(this).attr('action'),
-          method: 'POST',
-          data: $(this).serialize(),
-          success: function(response) {
-            if (response.redirect) {
-              window.location.href = response.redirect;
-            } else {
-              alert('Order placed successfully!');
-            }
-          },
-          error: function(xhr) {
-            // Handle errors
-            submitBtn.text(originalText);
-            submitBtn.prop('disabled', false);
-
-            if (xhr.responseJSON && xhr.responseJSON.errors) {
-              // Display validation errors
-              let errorHtml =
-                '<h4 class="mb-2 flex items-center gap-2 font-semibold"><i class="fas fa-exclamation-circle"></i> Please check these things:</h4><ul class="list-inside list-disc">';
-              $.each(xhr.responseJSON.errors, function(key, value) {
-                errorHtml += '<li><i class="fas fa-times-circle"></i> ' + value[0] + '</li>';
-              });
-              errorHtml += '</ul>';
-
-              $('#errorDisplay').html(errorHtml).show();
-            } else {
-              alert('An error occurred. Please try again.');
-            }
-          }
-        });
-      } else {
-        // Scroll to first error
-        $('html, body').animate({
-          scrollTop: $('.border-red-500').first().offset().top - 100
-        }, 500);
-      }
-    });
+    }
 
     // Payment method selection styling
-    $('.payment-option input').on('change', function() {
-      $('.payment-option label').removeClass('border-indigo-600 bg-indigo-50');
-      $(this).closest('.payment-option').find('label').addClass('border-indigo-600 bg-indigo-50');
-    });
+    function setupPaymentSelection() {
+      $('.payment-option input').on('change', function() {
+        $('.payment-option label').removeClass('border-indigo-600 bg-indigo-50');
+        $(this).closest('.payment-option').find('label').addClass('border-indigo-600 bg-indigo-50');
+      });
+    }
 
-    // Format phone number input
-    $('#mobileNumber').on('input', function() {
-      let value = $(this).val().replace(/\D/g, '');
-      if (value.length > 10) {
-        value = value.substring(0, 10);
-      }
-      $(this).val(value);
-    });
+    // Buy now button
+    function setupBuyNowButton() {
+      $('#buy-now-btn').click(function() {
+        $('#checkout').get(0).scrollIntoView({
+          behavior: 'smooth'
+        });
+      });
+    }
+
+    // Initialize all functions
+    function init() {
+      setupQuantityControls();
+      setupVariationSelection();
+      setupDistrictSelection();
+      setupPhoneValidation();
+      loadStatesAndCities();
+      setupPaymentSelection();
+      setupBuyNowButton();
+
+      updateOrderSummary();
+    }
+
+    init();
   });
 </script>

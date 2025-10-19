@@ -48,7 +48,7 @@
 
   <!-- ====== Main Content ====== -->
   <main class="container mx-auto px-4 py-10">
-    @include('frontend.product-landing.product-details')
+    {{-- @include('frontend.product-landing.product-details') --}}
     @include('frontend.product-landing.product-tab')
     @include('frontend.product-landing.checkout')
   </main>

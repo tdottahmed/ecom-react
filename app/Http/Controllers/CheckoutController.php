@@ -1138,7 +1138,7 @@ class CheckoutController extends Controller
             'state' => $state ? $state->name : '',
             'city' => $city ? $city->name : '',
             'district' => $request->district,
-            'phone' => $request->phone,
+            'phone' => '+880' . $request->phone,
             'postal_code' => 'N/A'
         ]);
 
