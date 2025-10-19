@@ -1,5 +1,5 @@
 <section class="py-10">
-  <div class="container mx-auto max-w-4xl px-4">
+  <div class="container mx-auto max-w-6xl px-4">
     <!-- Product Image -->
     <div class="mb-8">
       <img src="{{ $detailedProduct->photos ? uploaded_asset(explode(',', $detailedProduct->photos)[0]) : asset('images/placeholder.jpg') }}"
@@ -7,7 +7,7 @@
     </div>
 
     <!-- Product Info Box -->
-    <div class="space-y-5 rounded-xl bg-white p-6 text-center shadow-lg md:p-8" id="product-info-box">
+    <div class="space-y-5 rounded-xl bg-white text-center shadow-lg md:p-8" id="product-info-box">
       <h1 class="text-2xl font-bold text-gray-900 md:text-3xl">{{ $detailedProduct->name }}</h1>
 
       @if ($detailedProduct->brand)

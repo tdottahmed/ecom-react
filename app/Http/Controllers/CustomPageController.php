@@ -142,18 +142,6 @@ class CustomPageController extends Controller
         $detailedProduct = Product::with('reviews', 'brand', 'stocks', 'user', 'user.shop')->find($page->product_id);
 
         if ($detailedProduct != null && $detailedProduct->published) {
-            if ((get_setting('vendor_system_activation') != 1) && $detailedProduct->added_by == 'seller') {
-                abort(404);
-            }
-
-            if ($detailedProduct->added_by == 'seller' && $detailedProduct->user->banned == 1) {
-                abort(404);
-            }
-
-            if (!addon_is_activated('wholesale') && $detailedProduct->wholesale_product == 1) {
-                abort(404);
-            }
-
             $product_queries = ProductQuery::where('product_id', $detailedProduct->id)->where(
                 'customer_id',
                 '!=',
