@@ -1,8 +1,12 @@
+import Banner from "@/Components/Landing/Banner";
+import Header from "@/Components/Lyouts/Marketpro/Header";
+
 function Home() {
     return (
-        <div>
-            <h2>Home</h2>
-        </div>
+        <>
+            <Header />
+            <Banner />
+        </>
     );
 }
 

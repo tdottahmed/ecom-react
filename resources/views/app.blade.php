@@ -58,7 +58,7 @@
       <link rel="icon"
           href="{{ $site_icon }}">
     <link rel="apple-touch-icon" href="{{ $site_icon }}">
-
+    <link href="{{ asset('frontend/marketpro/css/app.min.css') }}" rel="stylesheet">
     @viteReactRefresh
     @vite(['resources/css/app.css'])
     @inertiaHead
@@ -68,6 +68,7 @@
   @inertia
   @routes
 
+  <script defer="defer" src="{{ asset('frontend/marketpro/js/app.bundle.js') }}"></script>
   @vite(['resources/js/app.tsx'])
 </body>
 
