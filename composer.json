@@ -19,6 +19,7 @@
         "genealabs/laravel-sign-in-with-apple": "*",
         "genealabs/laravel-socialiter": "*",
         "guzzlehttp/guzzle": "^7.5",
+        "inertiajs/inertia-laravel": "^2.0",
         "instamojo/instamojo-php": "^0.4.0",
         "intervention/image": "^2.5",
         "iyzico/iyzipay-php": "^2.0",
@@ -50,6 +51,7 @@
         "steadfast-courier/steadfast-courier-laravel-package": "^1.1",
         "stichoza/google-translate-php": "^5.2",
         "stripe/stripe-php": "^10.5",
+        "tightenco/ziggy": "^2.6",
         "twilio/sdk": "^6.44",
         "unicodeveloper/laravel-paystack": "^1.0"
     },
