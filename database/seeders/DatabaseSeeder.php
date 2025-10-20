@@ -29,6 +29,7 @@ use Database\Seeders\Models\TaxSeeder;
 use Database\Seeders\Models\TranslationSeeder;
 use Database\Seeders\Models\UploadSeeder;
 use Database\Seeders\Models\UserSeeder;
+use Database\Seeds\SettingSeeder;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -42,6 +43,7 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         $this->call([
+            BusinessSettingSeeder::class,
             CategorySeeder::class,
             ColorSeeder::class,
             CountrySeeder::class,
@@ -65,7 +67,7 @@ class DatabaseSeeder extends Seeder
             ShopSeeder::class,
             TaxSeeder::class,
             UploadSeeder::class,
-//            NotificationTypeSeeder::class,
+            //            NotificationTypeSeeder::class,
             UserSeeder::class,
         ]);
     }
