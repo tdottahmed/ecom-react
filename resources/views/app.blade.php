@@ -68,7 +68,7 @@
   @inertia
   @routes
 
-  <script defer="defer" src="{{ asset('frontend/marketpro/js/app.bundle.js') }}"></script>
+  {{-- <script defer="defer" src="{{ asset('frontend/marketpro/js/app.bundle.js') }}"></script> --}}
   @vite(['resources/js/app.tsx'])
 </body>
 
